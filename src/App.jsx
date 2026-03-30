@@ -1,336 +1,1028 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import {
-  Github, Mail, Code2, Smartphone, Gamepad2, Send,
-  Terminal, Globe, Award, Layers, ChevronRight,
-  DatabaseZap, Cpu, Zap, Star, Shield, Activity
+  Github, ExternalLink, Code2, Smartphone, Server,
+  Database, Terminal, ChevronDown, MapPin, Calendar,
+  ArrowUpRight, Send, Sparkles, Zap, Layers, Cpu,
+  Globe, Activity, Menu, X
 } from 'lucide-react';
 
-// =========================================================
-//  REAL PLANET SPHERE COMPONENT — High-fidelity CSS 3D
-// =========================================================
-function SpherePlanet({ texture, size, glowColor, hasRings = false, atmosphere = true, duration = 120 }) {
+const up = {
+  hidden: { opacity: 0, y: 40 },
+  show: (i = 0) => ({
+    opacity: 1, y: 0,
+    transition: { duration: 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }
+  })
+};
+
+const container = {
+  show: { transition: { staggerChildren: 0.08 } }
+};
+
+/* ─── Fog / Cloud Layer ─── */
+function FogLayer() {
+  const { scrollYProgress } = useScroll();
+  const leftX = useTransform(scrollYProgress, [0, 1], [-220, -40]);
+  const rightX = useTransform(scrollYProgress, [0, 1], [220, 40]);
+  const fogY = useTransform(scrollYProgress, [0, 1], [120, -40]);
+  const fogOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0.15, 0.35, 0.25]);
+
   return (
-    <div style={{
-      position: 'relative', width: size, height: size,
-      transformStyle: 'preserve-3d',
-      transform: 'rotateX(15deg) rotateZ(-25deg)',
-      animation: 'orbitalFloat 18s ease-in-out infinite', // Simulate revolving/drifting
-      userSelect: 'none', pointerEvents: 'none'
-    }}>
-      {/* 3D RINGS (Ice + Dust) */}
-      {hasRings && (
-        <div style={{
+    <motion.div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        pointerEvents: 'none',
+        zIndex: 2,
+        opacity: fogOpacity
+      }}
+      aria-hidden="true"
+    >
+      <motion.div
+        style={{
+          position: 'absolute',
+          left: 0,
+          bottom: 0,
+          width: '55vw',
+          height: '40vh',
+          x: leftX,
+          y: fogY,
+          background:
+            'radial-gradient(70% 60% at 30% 70%, rgba(255,255,255,0.9), rgba(255,255,255,0) 70%)',
+          filter: 'blur(18px)'
+        }}
+      />
+      <motion.div
+        style={{
+          position: 'absolute',
+          right: 0,
+          bottom: 0,
+          width: '55vw',
+          height: '40vh',
+          x: rightX,
+          y: fogY,
+          background:
+            'radial-gradient(70% 60% at 70% 70%, rgba(255,255,255,0.9), rgba(255,255,255,0) 70%)',
+          filter: 'blur(18px)'
+        }}
+      />
+    </motion.div>
+  );
+}
+
+/* ─── Animated Network Background ─── */
+function NetworkBg() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let width = 0;
+    let height = 0;
+    let raf = 0;
+    const points = [];
+    const POINTS = 60;
+    const MAX_DIST = 170;
+
+    const resize = () => {
+      const dpr = window.devicePixelRatio || 1;
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+
+    const init = () => {
+      points.length = 0;
+      for (let i = 0; i < POINTS; i += 1) {
+        points.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * 0.6,
+          vy: (Math.random() - 0.5) * 0.6,
+          r: Math.random() * 1.6 + 1.2
+        });
+      }
+    };
+
+    const step = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      // soft gradient wash to match reference feel
+      const grad = ctx.createLinearGradient(0, 0, width, height);
+      grad.addColorStop(0, 'rgba(255,255,255,0.45)');
+      grad.addColorStop(1, 'rgba(239,246,255,0.35)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+
+      for (let i = 0; i < points.length; i += 1) {
+        const p = points[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
+      }
+
+      // subtle triangle faces
+      for (let i = 0; i < points.length; i += 1) {
+        let n1 = null;
+        let n2 = null;
+        let d1 = Infinity;
+        let d2 = Infinity;
+        const p = points[i];
+        for (let j = 0; j < points.length; j += 1) {
+          if (i === j) continue;
+          const q = points[j];
+          const dx = p.x - q.x;
+          const dy = p.y - q.y;
+          const d = Math.sqrt(dx * dx + dy * dy);
+          if (d < d1) {
+            d2 = d1; n2 = n1;
+            d1 = d; n1 = q;
+          } else if (d < d2) {
+            d2 = d; n2 = q;
+          }
+        }
+        if (n1 && n2 && d1 < MAX_DIST && d2 < MAX_DIST) {
+          ctx.fillStyle = 'rgba(56,189,248,0.08)';
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y);
+          ctx.lineTo(n1.x, n1.y);
+          ctx.lineTo(n2.x, n2.y);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
+      for (let i = 0; i < points.length; i += 1) {
+        for (let j = i + 1; j < points.length; j += 1) {
+          const a = points[i];
+          const b = points[j];
+          const dx = a.x - b.x;
+          const dy = a.y - b.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < MAX_DIST) {
+            const alpha = 1 - dist / MAX_DIST;
+            ctx.strokeStyle = `rgba(29,78,216,${alpha * 0.35})`;
+            ctx.lineWidth = 1.1;
+            ctx.beginPath();
+            ctx.moveTo(a.x, a.y);
+            ctx.lineTo(b.x, b.y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      for (let i = 0; i < points.length; i += 1) {
+        const p = points[i];
+        ctx.fillStyle = 'rgba(56,189,248,0.6)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      raf = requestAnimationFrame(step);
+    };
+
+    const onResize = () => {
+      resize();
+      init();
+    };
+
+    resize();
+    init();
+    step();
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', onResize);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 0,
+        opacity: 0.75,
+        mixBlendMode: 'multiply',
+        pointerEvents: 'none'
+      }}
+    />
+  );
+}
+
+/* ─── Glowing Orb Background ─── */
+function Orbs() {
+  return (
+    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+      <motion.div
+        animate={{ x: [0, 80, -40, 0], y: [0, -60, 40, 0], scale: [1, 1.2, 0.9, 1] }}
+        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+        style={{
+          position: 'absolute', top: '10%', left: '15%',
+          width: 500, height: 500, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(249,115,22,0.18) 0%, transparent 70%)',
+          filter: 'blur(60px)'
+        }}
+      />
+      <motion.div
+        animate={{ x: [0, -60, 50, 0], y: [0, 80, -30, 0], scale: [1, 0.8, 1.15, 1] }}
+        transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+        style={{
+          position: 'absolute', bottom: '10%', right: '10%',
+          width: 400, height: 400, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(251,146,60,0.18) 0%, transparent 70%)',
+          filter: 'blur(80px)'
+        }}
+      />
+      <motion.div
+        animate={{ x: [0, 40, -60, 0], y: [0, -40, 60, 0] }}
+        transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
+        style={{
           position: 'absolute', top: '50%', left: '50%',
-          width: size * 2.2, height: size * 2.2,
-          marginLeft: -(size * 1.1), marginTop: -(size * 1.1),
-          borderRadius: '50%',
-          transform: 'rotateX(75deg)',
-          background: `radial-gradient(circle, transparent 48%, ${glowColor}20 50%, ${glowColor}40 54%, transparent 55%, ${glowColor}30 58%, ${glowColor}10 65%, transparent 70%)`,
-          border: `1px solid ${glowColor}10`,
-          boxShadow: `0 0 30px ${glowColor}20`,
-          zIndex: 0,
-        }} />
-      )}
-
-      {/* Main Spherical Body */}
-      <div style={{
-        position: 'absolute', inset: 0, borderRadius: '50%',
-        overflow: 'hidden', backgroundColor: '#111',
-        transform: 'translateZ(20px)',
-        boxShadow: `0 0 80px ${glowColor}10`,
-        zIndex: 5
-      }}>
-        {/* Surface Texture */}
-        <div style={{
-          position: 'absolute', inset: 0,
-          backgroundImage: `url(${texture})`,
-          backgroundSize: 'auto 100%',
-          backgroundRepeat: 'repeat-x',
-          animation: `rotatePlanet ${duration}s linear infinite`,
-          filter: 'contrast(1.1) brightness(0.9)',
-        }} />
-
-        {/* Fixed Lighting Overlay */}
-        <div style={{
-          position: 'absolute', inset: -1, borderRadius: '50%',
-          background: `radial-gradient(circle at 35% 35%, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 30%, transparent 60%, rgba(0,0,0,0.85) 95%)`,
-          zIndex: 6
-        }} />
-      </div>
-
-      <style>{`
-        @keyframes rotatePlanet {
-          from { background-position: 0 0; }
-          to { background-position: 800% 0; }
-        }
-        @keyframes orbitalFloat {
-          0% { transform: rotateX(15deg) rotateZ(-25deg) translate(0, 0); }
-          25% { transform: rotateX(20deg) rotateZ(-20deg) translate(60px, -40px); }
-          50% { transform: rotateX(15deg) rotateZ(-28deg) translate(20px, 80px); }
-          75% { transform: rotateX(10deg) rotateZ(-30deg) translate(-60px, -40px); }
-          100% { transform: rotateX(15deg) rotateZ(-25deg) translate(0, 0); }
-        }
-      `}</style>
+          width: 350, height: 350, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(245,158,11,0.16) 0%, transparent 70%)',
+          filter: 'blur(60px)', transform: 'translate(-50%,-50%)'
+        }}
+      />
     </div>
   );
 }
 
-function PlanetSection({ id, texture, title, subtitle, children, align = 'left', glowColor = '#22d3ee', planetSize = 400, hasRings = false }) {
-  const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"]
-  });
+/* ─── Grid Background ─── */
+function GridBg() {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
+      backgroundImage: `
+        linear-gradient(rgba(20,12,6,0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(20,12,6,0.06) 1px, transparent 1px)
+      `,
+      backgroundSize: '80px 80px',
+      maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
+      WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 80%)'
+    }} />
+  );
+}
 
-  const x = useTransform(scrollYProgress, [0, 0.4, 0.6, 1], align === 'left' ? [-100, 0, 0, -100] : [100, 0, 0, 100]);
-  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.4, 0.6, 1], [0.8, 1, 1, 0.8]);
+/* ─── Navigation ─── */
+function Nav() {
+  const [scrolled, setScrolled] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 30);
+    window.addEventListener('scroll', fn);
+    return () => window.removeEventListener('scroll', fn);
+  }, []);
+
+  const links = [
+    { label: 'About', href: '#about' },
+    { label: 'Skills', href: '#skills' },
+    { label: 'Projects', href: '#projects' },
+    { label: 'Experience', href: '#experience' },
+    { label: 'Contact', href: '#contact' },
+  ];
 
   return (
-    <section id={id} ref={ref} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '100px 5%', position: 'relative', overflow: 'hidden' }}>
+    <nav style={{
+      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
+      background: scrolled ? 'rgba(255,255,255,0.65)' : 'transparent',
+      backdropFilter: scrolled ? 'blur(18px) saturate(1.2)' : 'none',
+      borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
+      transition: 'all 0.4s ease'
+    }}>
       <div style={{
-        width: '100%', maxWidth: 1400, margin: '0 auto',
-        display: 'flex', flexDirection: align === 'left' ? 'row' : 'row-reverse',
-        alignItems: 'center', gap: '5%', flexWrap: 'wrap'
+        maxWidth: 1200, margin: '0 auto', padding: '0 32px',
+        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        height: 70
       }}>
-        {/* Planet Side — THE REAL 3D SPHERE */}
-        <motion.div style={{ flex: '1 1 45%', minWidth: 320, display: 'flex', justifyContent: 'center', x, opacity, scale }}>
-           <SpherePlanet texture={texture} size={planetSize} glowColor={glowColor} hasRings={hasRings} duration={align === 'left' ? 140 : 180} />
+        <a href="#" style={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.03em' }}>
+          <span style={{ background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>R</span>itesh
+        </a>
+
+        <div style={{ display: 'flex', gap: 36, alignItems: 'center' }} className="nav-desktop">
+          {links.map(l => (
+            <a key={l.href} href={l.href} style={{
+              fontSize: '0.85rem', color: 'var(--t2)', fontWeight: 500,
+              transition: 'color 0.2s', position: 'relative'
+            }}
+              onMouseEnter={e => e.target.style.color = 'var(--t1)'}
+              onMouseLeave={e => e.target.style.color = 'var(--t2)'}
+            >{l.label}</a>
+          ))}
+        </div>
+
+        <button onClick={() => setOpen(!open)} style={{
+          display: 'none', background: 'none', border: 'none', color: 'var(--t1)',
+          cursor: 'pointer', padding: 8
+        }} className="nav-toggle">
+          {open ? <X size={22} /> : <Menu size={22} />}
+        </button>
+      </div>
+
+      {open && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            onClick={() => setOpen(false)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(10,14,25,0.25)',
+              backdropFilter: 'blur(4px)', zIndex: 180
+            }}
+          />
+          <motion.div
+            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
+            style={{
+              position: 'fixed', top: 0, right: 0, height: '100vh', width: '78vw',
+              maxWidth: 360, padding: '80px 26px 24px',
+              display: 'flex', flexDirection: 'column', gap: 16,
+              zIndex: 190
+            }}
+            className="glass-strong glass-outline"
+          >
+            {links.map(l => (
+              <a key={l.href} href={l.href} onClick={() => setOpen(false)}
+                style={{ fontSize: '1.05rem', color: 'var(--t2)', fontWeight: 700, padding: '8px 0' }}>
+                {l.label}
+              </a>
+            ))}
+          </motion.div>
+        </>
+      )}
+
+      <style>{`
+        @media (max-width: 768px) {
+          .nav-desktop { display: none !important; }
+          .nav-toggle { display: block !important; }
+        }
+      `}</style>
+    </nav>
+  );
+}
+
+/* ─── Hero ─── */
+function Hero() {
+  const [kick, setKick] = useState({ key: 0, dx: 0, dy: 0 });
+  const sectionRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ['start end', 'end start']
+  });
+  const textY = useTransform(scrollYProgress, [0, 1], [24, -24]);
+  const imageY = useTransform(scrollYProgress, [0, 1], [40, -40]);
+  const glowRotate = useTransform(scrollYProgress, [0, 1], [-6, 6]);
+  const chipsY = useTransform(scrollYProgress, [0, 1], [12, -12]);
+  const backY = useTransform(scrollYProgress, [0, 1], [0, -80]);
+  const frontY = useTransform(scrollYProgress, [0, 1], [0, -20]);
+  const driftX = useTransform(scrollYProgress, [0, 1], [-24, 24]);
+  const driftY = useTransform(scrollYProgress, [0, 1], [18, -18]);
+
+  const skillCards = [
+    { icon: Code2, title: 'React', sub: 'Frontend Expert', style: { top: '6%', right: '-10%' } },
+    { icon: Server, title: 'AWS', sub: 'Cloud Deployment', style: { left: '-12%', top: '46%' } },
+    { icon: Database, title: 'Java', sub: 'Spring Boot', style: { right: '-12%', bottom: '10%' } },
+    { icon: Smartphone, title: 'UI/UX', sub: 'Design Systems', style: { left: '6%', bottom: '-8%' } },
+  ];
+  const floaters = [
+    { label: 'React + Framer', x: '6%', y: '18%', delay: 0.1 },
+    { label: 'Node + APIs', x: '78%', y: '22%', delay: 0.3 },
+    { label: 'Cloud Ready', x: '10%', y: '68%', delay: 0.2 },
+    { label: 'Realtime UX', x: '70%', y: '72%', delay: 0.4 }
+  ];
+
+  return (
+    <section ref={sectionRef} style={{
+      minHeight: '100vh', display: 'flex', alignItems: 'center',
+      justifyContent: 'center', padding: '100px 32px 60px', position: 'relative', zIndex: 1,
+      overflow: 'clip'
+    }}>
+      <motion.div
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          pointerEvents: 'none',
+          y: backY
+        }}
+      >
+        <motion.div style={{
+          position: 'absolute',
+          top: '8%',
+          left: '4%',
+          width: 240,
+          height: 240,
+          borderRadius: '40% 60% 65% 35% / 45% 35% 65% 55%',
+          background: 'radial-gradient(circle at 30% 30%, rgba(56,189,248,0.28), rgba(29,78,216,0.08), transparent 70%)',
+          filter: 'blur(4px)',
+          x: driftX
+        }} />
+        <motion.div style={{
+          position: 'absolute',
+          right: '3%',
+          top: '14%',
+          width: 180,
+          height: 180,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(125,211,252,0.24), rgba(29,78,216,0.05), transparent 70%)',
+          filter: 'blur(4px)',
+          y: driftY
+        }} />
+        <motion.div style={{
+          position: 'absolute',
+          left: '15%',
+          bottom: '6%',
+          width: '70%',
+          height: 120,
+          background: 'linear-gradient(90deg, transparent, rgba(29,78,216,0.08), rgba(56,189,248,0.12), rgba(29,78,216,0.08), transparent)',
+          filter: 'blur(22px)',
+          y: frontY
+        }} />
+      </motion.div>
+
+      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} className="hero-floats">
+        {floaters.map((f, i) => (
+          <motion.div
+            key={f.label}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: f.delay, duration: 0.6 }}
+            style={{
+              position: 'absolute', left: f.x, top: f.y,
+              padding: '8px 14px', borderRadius: 999,
+              background: 'rgba(255,255,255,0.65)', border: '1px solid var(--border)',
+              fontSize: '0.75rem', fontWeight: 600, color: 'var(--t2)',
+              backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6
+            }}
+            className="float"
+          >
+            <Sparkles size={12} /> {f.label}
+          </motion.div>
+        ))}
+      </div>
+
+      <motion.div
+        initial="hidden" animate="show" variants={container}
+        style={{
+          maxWidth: 1200, width: '100%',
+          display: 'grid', gridTemplateColumns: '1.1fr 0.9fr',
+          gap: 40, alignItems: 'center',
+          position: 'relative',
+          zIndex: 1
+        }}
+        className="hero-grid"
+      >
+        <motion.div style={{ y: textY }}>
+          <motion.div variants={up} custom={0} style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10,
+            padding: '8px 20px', borderRadius: 100,
+            background: 'rgba(255,255,255,0.7)', border: '1px solid var(--border)',
+            marginBottom: 26
+          }} className="shimmer glass">
+            <motion.div
+              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+              style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--acc)', boxShadow: '0 0 12px var(--acc)' }}
+            />
+            <span style={{ fontSize: '0.8rem', color: 'var(--t2)', fontWeight: 600, letterSpacing: '0.02em' }}>
+              Open to opportunities
+            </span>
+          </motion.div>
+
+          <motion.h1 variants={up} custom={1} style={{
+            fontSize: 'clamp(2.8rem, 6vw, 4.6rem)', fontWeight: 900,
+            letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: 14
+          }}>
+            Ritesh Ram <span className="text-grad">Dhebe</span>
+          </motion.h1>
+
+          <motion.p variants={up} custom={2} style={{
+            fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)', color: 'var(--t2)',
+            fontWeight: 600, marginBottom: 10
+          }}>
+            Full Stack Developer
+          </motion.p>
+
+          <motion.p variants={up} custom={3} style={{
+            fontSize: '0.98rem', color: 'var(--t3)', maxWidth: 520,
+            marginBottom: 30, lineHeight: 1.7
+          }}>
+            Crafting scalable web experiences with React.js, Node.js & modern cloud infrastructure. Building the future, one commit at a time.
+          </motion.p>
+
+          <motion.div variants={up} custom={4} style={{
+            display: 'flex', gap: 14, flexWrap: 'wrap'
+          }}>
+            <a href="#projects" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '14px 32px', borderRadius: 12, fontWeight: 700,
+              fontSize: '0.9rem', background: 'var(--grad)', color: '#fff',
+              border: 'none', cursor: 'pointer', transition: 'all 0.3s',
+              boxShadow: '0 10px 30px rgba(249,115,22,0.35)'
+            }}
+              onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 16px 40px rgba(249,115,22,0.45)'; }}
+              onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 10px 30px rgba(249,115,22,0.35)'; }}
+            >
+              View Projects <ArrowUpRight size={17} />
+            </a>
+            <a href="#contact" style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '14px 32px', borderRadius: 12, fontWeight: 700,
+              fontSize: '0.9rem', background: 'rgba(255,255,255,0.7)',
+              border: '1px solid var(--border-h)', color: 'var(--t1)',
+              cursor: 'pointer', transition: 'all 0.3s'
+            }}
+              onMouseEnter={e => { e.target.style.borderColor = 'var(--acc)'; e.target.style.background = 'rgba(255,255,255,0.9)'; }}
+              onMouseLeave={e => { e.target.style.borderColor = 'var(--border-h)'; e.target.style.background = 'rgba(255,255,255,0.7)'; }}
+            >
+              Contact Me
+            </a>
+          </motion.div>
         </motion.div>
 
-        {/* Content Side */}
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: 0.2, duration: 0.6 }}
-          style={{ flex: '1 1 50%', minWidth: 320, zIndex: 10 }}>
-          <p style={{ fontFamily: 'monospace', fontSize: '0.65rem', color: '#22d3ee', letterSpacing: 5, textTransform: 'uppercase', marginBottom: '1.2rem' }}>// {subtitle}</p>
-          <h2 style={{ fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, fontFamily: "'Orbitron', sans-serif", background: 'linear-gradient(to right, #fff, #22d3ee, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', marginBottom: '2.5rem' }}>{title}</h2>
-          {children}
+        <motion.div
+          variants={up}
+          custom={5}
+          style={{
+            position: 'relative',
+            width: '100%',
+            minHeight: 460,
+            display: 'grid',
+            placeItems: 'center'
+          }}
+          className="hero-image-wrap"
+        >
+          <motion.div style={{ y: imageY }}>
+            <motion.div style={{ rotate: glowRotate }}>
+              <div style={{
+            position: 'absolute',
+            width: 460, height: 460, borderRadius: '50%',
+            background: 'radial-gradient(circle at 35% 30%, rgba(56,189,248,0.35), rgba(29,78,216,0.15), transparent 60%)',
+            filter: 'blur(12px)'
+              }} />
+            </motion.div>
+
+          <div style={{
+            width: 360, height: 360, borderRadius: '50%',
+            padding: 8,
+            background: 'var(--grad)',
+            boxShadow: '0 30px 80px rgba(29,78,216,0.35)',
+            display: 'grid', placeItems: 'center'
+          }} className="hero-ring">
+            <div style={{
+              width: '100%', height: '100%', borderRadius: '50%',
+              background: '#fff', padding: 6,
+              display: 'grid', placeItems: 'center'
+            }} className="hero-avatar glass-strong glass-outline">
+              <motion.img
+                src="/profile.png"
+                  alt="Ritesh"
+                  initial={{ scale: 0.96, opacity: 0 }}
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const dir = clickX < rect.width / 2 ? -1 : 1;
+                    setKick({ key: Date.now(), dx: 18 * dir, dy: 16 });
+                  }}
+                  animate={{
+                    scale: 1,
+                    opacity: 1,
+                    x: kick.dx ? [0, kick.dx, 0] : 0,
+                    y: kick.dy ? [0, kick.dy, 0] : 0
+                  }}
+                  transition={{
+                    duration: kick.dx ? 1.2 : 0.8,
+                    ease: 'easeInOut'
+                  }}
+                  key={kick.key}
+                  style={{
+                    width: '100%', height: '100%', objectFit: 'cover',
+                    borderRadius: '50%', display: 'block',
+                    filter: 'saturate(1.15) contrast(1.05) brightness(1.02)'
+                  }}
+                />
+              </div>
+            </div>
+          </motion.div>
+
+          {skillCards.map((c, i) => (
+            <motion.div
+              key={c.title}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 + i * 0.08, duration: 0.6 }}
+              style={{
+                position: 'absolute', ...c.style,
+                padding: '14px 16px', borderRadius: 16,
+                background: 'rgba(255,255,255,0.85)',
+                border: '1px solid var(--border)',
+                boxShadow: '0 16px 40px rgba(29,78,216,0.2)',
+                minWidth: 170,
+                y: chipsY
+              }}
+              className="glass skill-float"
+            >
+              <motion.div
+                animate={{ y: [0, i % 2 === 0 ? -8 : 8, 0] }}
+                transition={{ duration: 4 + i, repeat: Infinity, ease: 'easeInOut' }}
+                style={{ display: 'flex', gap: 12, alignItems: 'center' }}
+              >
+                <c.icon size={20} color="var(--acc)" />
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{c.title}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--t3)', fontWeight: 600 }}>{c.sub}</div>
+                </div>
+              </motion.div>
+            </motion.div>
+          ))}
         </motion.div>
-      </div>
+      </motion.div>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .hero-floats { display: none; }
+        }
+        @media (max-width: 860px) {
+          section { padding-top: 110px !important; }
+          .hero-grid {
+            grid-template-columns: 1fr !important;
+          }
+          .hero-image-wrap {
+            min-height: 320px !important;
+          }
+        }
+      `}</style>
     </section>
   );
 }
 
-// =========================================================
-//  GUARANTEED STARS — High-Density SVG Twinkle Field
-// =========================================================
-const Background = React.memo(() => {
-  const stars = React.useMemo(() => Array.from({ length: 150 }).map((_, i) => ({
-    id: i,
-    top: `${Math.random() * 100}%`,
-    left: `${Math.random() * 100}%`,
-    size: Math.random() * 3 + 1,
-    color: Math.random() > 0.8 ? '#22d3ee' : '#ffffff',
-    duration: 3 + Math.random() * 4,
-    delay: Math.random() * 5
-  })), []);
+/* ─── Section Wrapper ─── */
+function Section({ id, title, sub, children }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'center center']
+  });
+  const liftY = useTransform(scrollYProgress, [0, 0.5, 1], [70, 0, -70]);
+  const fade = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.75]);
+  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.97, 1, 0.98]);
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none', overflow: 'hidden' }}>
-      {stars.map(star => (
-        <motion.div key={star.id} className="star-element"
-          initial={{ opacity: 0.3 }}
-          animate={{ opacity: [0.3, 1, 0.3] }}
-          transition={{ duration: star.duration, repeat: Infinity, delay: star.delay, ease: 'easeInOut' }}
-          style={{
-            position: 'absolute', top: star.top, left: star.left,
-            width: star.size, height: star.size, borderRadius: '50%',
-            backgroundColor: star.color,
-            boxShadow: `0 0 8px ${star.color}`
-          }}
-        />
-      ))}
-      
-      {/* Heavy Drift for the background */}
-      <motion.div animate={{ x: [-20, 20, -20], y: [-15, 15, -15] }} transition={{ duration: 40, repeat: Infinity, ease: 'linear' }}
-        style={{ position: 'absolute', inset: -100, opacity: 0.3, backgroundImage: 'radial-gradient(1px 1px at 50px 50px, rgba(255,255,255,0.8), transparent)', backgroundSize: '120px 120px' }} />
-    </div>
+    <motion.section
+      ref={ref}
+      id={id}
+      style={{
+        padding: '120px 32px',
+        position: 'relative',
+        zIndex: 1,
+        y: liftY,
+        opacity: fade,
+        scale
+      }}
+    >
+      <motion.div
+        initial="hidden" whileInView="show" viewport={{ once: true, margin: '-80px' }}
+        variants={container}
+        style={{
+          maxWidth: 1200,
+          margin: '0 auto',
+          position: 'relative'
+        }}
+      >
+        <motion.div variants={up} style={{ marginBottom: 56 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <div style={{
+              width: 8, height: 8, borderRadius: '50%',
+              background: 'var(--acc)', boxShadow: '0 0 12px var(--acc)'
+            }} />
+            <span style={{
+              fontSize: '0.78rem', color: 'var(--acc2)', fontWeight: 700,
+              letterSpacing: '0.12em', textTransform: 'uppercase'
+            }}>{sub}</span>
+          </div>
+          <h2 style={{
+            fontSize: 'clamp(2rem, 4.5vw, 2.8rem)', fontWeight: 900,
+            letterSpacing: '-0.03em', lineHeight: 1.1
+          }}>{title}</h2>
+        </motion.div>
+        {children}
+      </motion.div>
+    </motion.section>
   );
-});
+}
 
-function TerminalLoader({ onComplete }) {
-  const [percent, setPercent] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => {
-      setPercent(p => {
-        if (p >= 100) { clearInterval(id); setTimeout(onComplete, 400); return 100; }
-        return p + 5;
-      });
-    }, 40);
-    return () => clearInterval(id);
-  }, []);
+/* ─── Skill Card ─── */
+function SkillCard({ icon: Icon, name, desc, color, idx }) {
   return (
-    <motion.div exit={{ opacity: 0 }} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center' }}>
-        <div style={{ fontFamily: 'monospace', color: '#22d3ee', fontSize: '0.8rem', letterSpacing: 4, marginBottom: 20 }}>INITIALIZING PROTOCOL... {percent}%</div>
-        <div style={{ width: 200, height: 2, background: 'rgba(255,255,255,0.1)', overflow: 'hidden' }}>
-          <motion.div initial={{ width: 0 }} animate={{ width: `${percent}%` }} style={{ height: '100%', background: '#22d3ee', boxShadow: '0 0 15px #22d3ee' }} />
+    <motion.div variants={up} custom={idx} whileHover={{ y: -6, borderColor: color + '50' }} style={{
+      padding: 28, borderRadius: 16,
+      background: 'var(--card)', border: '1px solid var(--border)',
+      transition: 'all 0.35s cubic-bezier(0.22,1,0.36,1)', cursor: 'default',
+      position: 'relative', overflow: 'hidden'
+    }} className="card glass">
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+        background: `linear-gradient(90deg, ${color}, transparent)`,
+        opacity: 0, transition: 'opacity 0.3s'
+      }} className="skill-bar" />
+      <div style={{
+        width: 48, height: 48, borderRadius: 14,
+        background: color + '12', display: 'flex',
+        alignItems: 'center', justifyContent: 'center', marginBottom: 18,
+        border: `1px solid ${color}20`
+      }}>
+        <Icon size={22} color={color} />
+      </div>
+      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 8, letterSpacing: '-0.01em' }}>{name}</h3>
+      <p style={{ fontSize: '0.87rem', color: 'var(--t3)', lineHeight: 1.65 }}>{desc}</p>
+    </motion.div>
+  );
+}
+
+/* ─── Project Card ─── */
+function ProjectCard({ title, desc, tech, color, idx }) {
+  return (
+    <motion.div variants={up} custom={idx} whileHover={{ y: -6 }} style={{
+      borderRadius: 20, overflow: 'hidden',
+      background: 'var(--card)', border: '1px solid var(--border)',
+      transition: 'all 0.35s cubic-bezier(0.22,1,0.36,1)',
+      position: 'relative'
+    }} className="card glass">
+      <div style={{
+        height: 4, background: `linear-gradient(90deg, ${color}, ${color}40)`
+      }} />
+      <div style={{ padding: 32 }}>
+        <h3 style={{
+          fontSize: '1.25rem', fontWeight: 800, marginBottom: 12,
+          letterSpacing: '-0.02em'
+        }}>{title}</h3>
+        <p style={{
+          fontSize: '0.92rem', color: 'var(--t2)',
+          lineHeight: 1.75, marginBottom: 24
+        }}>{desc}</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {tech.map(t => (
+            <span key={t} style={{
+              fontSize: '0.72rem', fontWeight: 600,
+              padding: '5px 14px', borderRadius: 8,
+              background: color + '10', border: `1px solid ${color}25`,
+              color: color, letterSpacing: '0.02em'
+            }}>{t}</span>
+          ))}
         </div>
       </div>
     </motion.div>
   );
 }
 
+/* ─── Experience Item ─── */
+function ExpItem({ date, title, company, desc, idx }) {
+  return (
+    <motion.div variants={up} custom={idx} style={{
+      display: 'flex', gap: 28, padding: '32px 0',
+      borderBottom: '1px solid var(--border)',
+      position: 'relative'
+    }}>
+      <div style={{
+        minWidth: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Calendar size={13} color="var(--t3)" />
+          <span style={{ fontSize: '0.8rem', color: 'var(--t3)', fontWeight: 600 }}>{date}</span>
+        </div>
+      </div>
+      <div style={{ flex: 1 }}>
+        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 6, letterSpacing: '-0.01em' }}>{title}</h3>
+        <p style={{
+          fontSize: '0.88rem', color: 'var(--acc2)', fontWeight: 600,
+          marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6
+        }}>
+          <MapPin size={13} /> {company}
+        </p>
+        <p style={{ fontSize: '0.9rem', color: 'var(--t2)', lineHeight: 1.75 }}>{desc}</p>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─── Contact ─── */
+function Contact() {
+  return (
+    <Section id="contact" title="Let's Connect" sub="Get in Touch">
+      <motion.div variants={up} style={{
+        background: 'var(--card)', border: '1px solid var(--border)',
+        borderRadius: 24, padding: '52px 48px', maxWidth: 650,
+        position: 'relative', overflow: 'hidden'
+      }} className="card glass">
+        <div style={{
+          position: 'absolute', top: -50, right: -50,
+          width: 200, height: 200, borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(108,92,231,0.08), transparent)',
+          filter: 'blur(40px)'
+        }} />
+        <p style={{
+          fontSize: '1.05rem', color: 'var(--t2)', lineHeight: 1.75, marginBottom: 36,
+          position: 'relative'
+        }}>
+          Interested in working together? Whether you have a project in mind or just want to chat, feel free to reach out.
+        </p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }}>
+          <a href="https://wa.me/919552115645?text=Hi%20Ritesh,%20I%20have%20an%20inquiry%20regarding%20a%20project." target="_blank" rel="noreferrer" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            padding: '16px 28px', borderRadius: 14,
+            background: 'var(--grad2)', color: '#000', fontWeight: 700,
+            fontSize: '0.95rem', transition: 'all 0.3s', border: 'none',
+            boxShadow: '0 4px 20px rgba(0,230,118,0.25)'
+          }}
+            onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 30px rgba(0,230,118,0.4)'; }}
+            onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 20px rgba(0,230,118,0.25)'; }}
+          >
+            <Send size={17} /> WhatsApp Inquiry
+          </a>
+          <a href="https://github.com/Ritesh123-rd" target="_blank" rel="noreferrer" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+            padding: '16px 28px', borderRadius: 14,
+            background: 'rgba(255,255,255,0.04)', color: 'var(--t1)',
+            fontWeight: 700, fontSize: '0.95rem',
+            border: '1px solid var(--border-h)', transition: 'all 0.3s'
+          }}
+            onMouseEnter={e => { e.target.style.borderColor = 'var(--acc)'; e.target.style.background = 'rgba(108,92,231,0.08)'; }}
+            onMouseLeave={e => { e.target.style.borderColor = 'var(--border-h)'; e.target.style.background = 'rgba(255,255,255,0.04)'; }}
+          >
+            <Github size={17} /> GitHub Profile
+          </a>
+        </div>
+      </motion.div>
+    </Section>
+  );
+}
+
+/* ─── Stats ─── */
+function Stats() {
+  const items = [
+    { num: '2+', label: 'Years Experience' },
+    { num: '15+', label: 'Projects Completed' },
+    { num: '10+', label: 'Technologies' },
+    { num: '100%', label: 'Client Satisfaction' },
+  ];
+  return (
+    <section style={{ padding: '60px 32px', position: 'relative', zIndex: 1 }}>
+      <div style={{
+        maxWidth: 1200, margin: '0 auto',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24
+      }}>
+        {items.map((it, i) => (
+          <motion.div
+            key={i} initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.1, duration: 0.5 }}
+            style={{
+              textAlign: 'center', padding: 28,
+              background: 'var(--card)', borderRadius: 16,
+              border: '1px solid var(--border)'
+            }}
+            className="card glass"
+          >
+            <div style={{
+              fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-0.03em',
+              background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+              marginBottom: 4
+            }}>{it.num}</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--t3)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              {it.label}
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── Footer ─── */
+function Footer() {
+  return (
+    <footer style={{
+      padding: '48px 32px', textAlign: 'center',
+      borderTop: '1px solid var(--border)', position: 'relative', zIndex: 1
+    }}>
+      <div style={{
+        fontWeight: 800, fontSize: '1.1rem', marginBottom: 12,
+        background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+      }}>Ritesh Ram Dhebe</div>
+      <p style={{ fontSize: '0.82rem', color: 'var(--t3)' }}>
+        &copy; 2026 All rights reserved. Built with React & Framer Motion.
+      </p>
+    </footer>
+  );
+}
+
+/* ─── Main App ─── */
 export default function App() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 50);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   const skills = [
-    { name: 'Frontend (React.js)', icon: Smartphone, color: '#22d3ee' },
-    { name: 'Backend (Node.js)', icon: Cpu, color: '#34d399' },
-    { name: 'DB (MongoDB & MySQL)', icon: DatabaseZap, color: '#a855f7' },
-    { name: 'DevOps & Linux', icon: Terminal, color: '#f59e0b' },
-    { name: 'System Architecture', icon: Layers, color: '#ef4444' },
-    { name: 'Real-Time Systems', icon: Activity, color: '#3b82f6' },
+    { icon: Smartphone, name: 'Frontend Development', desc: 'React.js, Next.js, TypeScript, responsive UI with modern CSS frameworks', color: '#6c5ce7' },
+    { icon: Server, name: 'Backend Development', desc: 'Node.js, Express.js, REST APIs, GraphQL, microservices architecture', color: '#00e676' },
+    { icon: Database, name: 'Database Management', desc: 'MongoDB, MySQL, Redis, PostgreSQL, data modeling and optimization', color: '#f39c12' },
+    { icon: Terminal, name: 'DevOps & Cloud', desc: 'Docker, AWS, CI/CD pipelines, Linux server management', color: '#e74c3c' },
+    { icon: Layers, name: 'System Architecture', desc: 'Scalable design patterns, event-driven systems, API design', color: '#a29bfe' },
+    { icon: Activity, name: 'Real-Time Systems', desc: 'WebSockets, high concurrency, gaming platforms, event streaming', color: '#00cec9' },
   ];
 
   const projects = [
-    { title: 'Dynamic Web & Apps', desc: 'Responsive client websites and scalable mobile applications.', tech: ['React.js', 'Node.js', 'Express.js'], color: '#a855f7' },
-    { title: 'Enterprise Software', desc: 'Designed core business workflows for CRM and LMS with role-based access.', tech: ['MongoDB', 'Node.js', 'React'], color: '#34d399' },
-    { title: 'Multiplayer Gaming Platforms', desc: 'Real-time probability and skill-based gaming architectures with high concurrency.', tech: ['WebSockets', 'Node.js', 'Linux'], color: '#22d3ee' }
+    {
+      title: 'Dynamic Web & Mobile Apps',
+      desc: 'Responsive client websites and scalable mobile applications with modern frameworks, performance optimization, and seamless user experiences across all devices.',
+      tech: ['React.js', 'Node.js', 'Express.js', 'REST APIs'],
+      color: '#6c5ce7'
+    },
+    {
+      title: 'Enterprise Software Solutions',
+      desc: 'Core business workflows for CRM and LMS platforms featuring role-based access control, real-time analytics dashboards, and comprehensive admin panels.',
+      tech: ['MongoDB', 'Node.js', 'React', 'Docker'],
+      color: '#00e676'
+    },
+    {
+      title: 'Multiplayer Gaming Platforms',
+      desc: 'Real-time probability and skill-based gaming architectures with high concurrency, low-latency communication, and robust security measures.',
+      tech: ['WebSockets', 'Node.js', 'Linux', 'Redis'],
+      color: '#fd79a8'
+    },
+  ];
+
+  const experiences = [
+    {
+      date: 'Apr 2024 — Present',
+      title: 'Full Stack Developer',
+      company: 'Crystal Web, Pune',
+      desc: 'Building scalable web applications and enterprise solutions using React.js and Node.js. Leading architecture decisions for real-time systems and cloud infrastructure. Implementing CI/CD pipelines and DevOps best practices.'
+    },
+    {
+      date: '2018 — 2022',
+      title: 'BSc Computer Science',
+      company: 'TJ College Khadki, Pune University',
+      desc: 'Studied computer science fundamentals including data structures, algorithms, databases, operating systems, and software engineering principles. Completed capstone projects in web development.'
+    },
   ];
 
   return (
-    <div style={{ backgroundColor: '#000', color: '#fff', minHeight: '100vh', fontFamily: "'Rajdhani', sans-serif" }}>
-      <AnimatePresence>
-        {isLoading && <TerminalLoader onComplete={() => setIsLoading(false)} />}
-      </AnimatePresence>
-      
-      <Background />
+    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
+      <NetworkBg />
+      <FogLayer />
+      <Nav />
+      <Hero />
+      <Stats />
 
-      <nav style={{
-        position: 'fixed', top: 0, width: '100%', zIndex: 1000,
-        padding: scrolled ? '15px 5%' : '25px 5%',
-        background: scrolled ? 'rgba(0,0,5,0.85)' : 'transparent',
-        backdropFilter: 'blur(10px)', borderBottom: `1px solid ${scrolled ? 'rgba(255,255,255,0.1)' : 'transparent'}`,
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.4s'
-      }}>
-        <div style={{ fontFamily: "'Orbitron', sans-serif", fontSize: '1.2rem', fontWeight: 900, letterSpacing: 4 }}>
-          <span style={{ color: '#22d3ee' }}>RITESH</span>.SPACE
+      <Section id="about" title="About Me" sub="Introduction">
+        <motion.div variants={up} style={{
+          background: 'var(--card)', border: '1px solid var(--border)',
+          borderRadius: 24, padding: '40px 44px', maxWidth: 750,
+          position: 'relative', overflow: 'hidden'
+        }}>
+          <div style={{
+            position: 'absolute', top: -30, right: -30,
+            width: 150, height: 150, borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(108,92,231,0.06), transparent)',
+            filter: 'blur(30px)'
+          }} />
+          <p style={{ fontSize: '1.05rem', color: 'var(--t2)', lineHeight: 1.85, position: 'relative' }}>
+            Full Stack Developer with <strong style={{ color: 'var(--t1)' }}>2+ years</strong> of experience building scalable web architectures using <strong style={{ color: 'var(--acc2)' }}>React.js</strong> and <strong style={{ color: 'var(--acc2)' }}>Node.js</strong>. Passionate about clean code, performance optimization, and creating seamless user experiences. Currently focused on enterprise software development and real-time systems at Crystal Web, Pune.
+          </p>
+        </motion.div>
+      </Section>
+
+      <Section id="skills" title="Technical Skills" sub="Expertise">
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18
+        }}>
+          {skills.map((s, i) => <SkillCard key={i} {...s} idx={i} />)}
         </div>
-        <div style={{ display: 'flex', gap: '2rem' }}>
-          {['Skills', 'Work', 'Life', 'Connect'].map(item => (
-            <a key={item} href={`#${item.toLowerCase()}`} style={{ color: '#94a3b8', textDecoration: 'none', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'monospace' }}>{item}</a>
-          ))}
+      </Section>
+
+      <Section id="projects" title="Featured Projects" sub="Selected Work">
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 22
+        }}>
+          {projects.map((p, i) => <ProjectCard key={i} {...p} idx={i} />)}
         </div>
-      </nav>
+      </Section>
 
-      <motion.main initial={{ opacity: 0 }} animate={{ opacity: isLoading ? 0 : 1 }} transition={{ duration: 1 }}>
-        <section style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', paddingTop: '60px' }}>
-          <div style={{ textAlign: 'center', zIndex: 10 }}>
-            {/* PROFILE IMAGE */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1, delay: 0.2 }}
-              style={{ display: 'flex', justifyContent: 'center', marginBottom: '30px' }}
-            >
-              <div style={{
-                position: 'relative', width: '180px', height: '180px',
-                borderRadius: '50%', padding: '6px',
-                background: 'linear-gradient(135deg, #22d3ee, #a855f7)',
-                boxShadow: '0 0 50px rgba(34,211,238,0.4)',
-              }}>
-                <div style={{
-                  width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden',
-                  background: '#000', position: 'relative'
-                }}>
-                  {/* Note for User: The photo will be loaded here. Please ensure 'profile.png' is in the public folder. */}
-                  <img src="/profile.png" alt="Ritesh Ram Dhebe" style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'contrast(1.1) brightness(1.05)' }} />
-                </div> 
-                
-                {/* Rotating Tech Ring */}
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-                  style={{
-                    position: 'absolute', top: -15, left: -15, right: -15, bottom: -15,
-                    border: '2px dashed rgba(34,211,238,0.5)', borderRadius: '50%',
-                    pointerEvents: 'none'
-                  }}
-                />
-              </div>
-            </motion.div>
+      <Section id="experience" title="Experience & Education" sub="My Journey">
+        {experiences.map((e, i) => <ExpItem key={i} {...e} idx={i} />)}
+      </Section>
 
-            <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 1, delay: 0.4 }}>
-              <span style={{ display: 'inline-block', padding: '10px 25px', borderRadius: 100, background: 'rgba(34,211,238,0.05)', border: '1px solid rgba(34,211,238,0.2)', color: '#22d3ee', fontSize: '0.65rem', fontFamily: 'monospace', letterSpacing: 3, marginBottom: 30 }}>// UNIVERSAL ENGINEER</span>
-            </motion.div>
-            <motion.h1 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 1, delay: 0.6 }} style={{ fontSize: 'clamp(3rem, 10vw, 7.5rem)', fontWeight: 900, fontFamily: "'Orbitron', sans-serif", lineHeight: 1, marginBottom: 20 }}>RITESH RAM DHEBE</motion.h1>
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 1, delay: 0.8 }} style={{ fontSize: '1.2rem', color: '#94a3b8', fontStyle: 'italic' }}>Full Stack Developer • Scalable Web Architectures • React.js & Node.js</motion.p>
-          </div>
-          <motion.div animate={{ y: [0, 10, 0] }} transition={{ repeat: Infinity, duration: 2 }} style={{ position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)' }}>
-            <div style={{ width: 2, height: 60, background: 'linear-gradient(to bottom, #22d3ee, transparent)' }} />
-          </motion.div>
-        </section>
-
-        <PlanetSection id="skills" texture="/tex_purple.png" planetSize={380} glowColor="#a855f7" hasRings={true} title="Technical Core" subtitle="Engine Capabilities" align="left">
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-            {skills.map((s, i) => (
-              <div key={i} style={{ padding: 20, background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: 12, display: 'flex', alignItems: 'center', gap: 15 }}>
-                <s.icon size={20} color={s.color} />
-                <span style={{ fontWeight: 600 }}>{s.name}</span>
-              </div>
-            ))}
-          </div>
-        </PlanetSection>
-
-        <PlanetSection id="work" texture="/tex_blue.png" planetSize={420} glowColor="#22d3ee" hasRings={true} title="Missions Log" subtitle="Project Explorer" align="right">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 25 }}>
-            {projects.map((p, i) => (
-              <div key={i} style={{ padding: 25, borderRadius: 16, background: 'rgba(5,5,15,0.7)', border: '1px solid rgba(255,255,255,0.08)', backdropFilter: 'blur(10px)' }}>
-                <h3 style={{ fontSize: '1.4rem', fontFamily: "'Orbitron', sans-serif", color: p.color, marginBottom: 10 }}>{p.title}</h3>
-                <p style={{ color: '#94a3b8', marginBottom: 15 }}>{p.desc}</p>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  {p.tech.map(t => <span key={t} style={{ fontSize: '0.65rem', background: 'rgba(255,255,255,0.05)', padding: '4px 10px', borderRadius: 4 }}>{t}</span>)}
-                </div>
-              </div>
-            ))}
-          </div>
-        </PlanetSection>
-
-        <PlanetSection id="life" texture="/tex_lava.png" planetSize={360} glowColor="#ef4444" title="Expansion Path" subtitle="Chronology" align="left">
-          <div style={{ position: 'relative', paddingLeft: 30 }}>
-            <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 2, background: 'linear-gradient(to bottom, #22d3ee, #a855f7, transparent)' }} />
-            {[
-              { year: 'APR 2024 - PRESENT', title: 'FULL STACK DEVELOPER', place: 'Crystal Web, Pune' },
-              { year: '2018 - 2022', title: 'BSC COMPUTER SCIENCE', place: 'TJ College Khadki, Pune University' }
-            ].map((e, i) => (
-              <div key={i} style={{ marginBottom: 40 }}>
-                <div style={{ color: '#22d3ee', fontWeight: 700, fontSize: '0.8rem', marginBottom: 5 }}>{e.year}</div>
-                <div style={{ fontSize: '1.2rem', fontFamily: "'Orbitron', sans-serif" }}>{e.title}</div>
-                <div style={{ color: '#94a3b8' }}>{e.place}</div>
-              </div>
-            ))}
-          </div>
-        </PlanetSection>
-
-        <PlanetSection id="connect" texture="/tex_purple.png" planetSize={340} glowColor="#22d3ee" title="Secure Link" subtitle="Subspace Connection" align="right">
-          <div style={{ background: 'rgba(255,255,255,0.03)', padding: 40, borderRadius: 24, border: '1px solid rgba(255,255,255,0.08)' }}>
-            <p style={{ fontSize: '1.1rem', color: '#94a3b8', marginBottom: 30 }}>Ready for new architectural missions. Signal established via secure frequency.</p>
-            <div style={{ display: 'flex', gap: 20 }}>
-              <a href="https://wa.me/919552115645?text=Hi%20Ritesh,%20I%20have%20an%20inquiry%20regarding%20a%20project." target="_blank" rel="noreferrer" style={{ flex: 1, padding: '15px', borderRadius: 12, background: '#25D366', color: '#000', textAlign: 'center', textDecoration: 'none', fontWeight: 800 }}>WHATSAPP INQUIRY</a>
-              <a href="https://github.com/Ritesh123-rd" target="_blank" rel="noreferrer" style={{ flex: 1, padding: '15px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#fff', textAlign: 'center', textDecoration: 'none', fontWeight: 800 }}>GITHUB ARCHIVE</a>
-            </div>
-          </div>
-        </PlanetSection>
-      </motion.main>
-
-      <footer style={{ padding: '60px 0', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <div style={{ opacity: 0.5, fontFamily: "'Orbitron', sans-serif", fontSize: '0.8rem', letterSpacing: 5 }}>RITESH.SPACE // © 2026</div>
-      </footer>
-
-      <style>{`
-        * { scroll-behavior: smooth; box-sizing: border-box; }
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-track { background: #000; }
-        ::-webkit-scrollbar-thumb { background: #22d3ee; border-radius: 10px; }
-      `}</style>
+      <Contact />
+      <Footer />
     </div>
   );
 }
