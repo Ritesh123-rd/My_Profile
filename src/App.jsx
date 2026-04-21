@@ -1,280 +1,98 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion';
 import {
-  Github, ExternalLink, Code2, Smartphone, Server,
-  Database, Terminal, ChevronDown, MapPin, Calendar,
-  ArrowUpRight, Send, Sparkles, Zap, Layers, Cpu,
-  Globe, Activity, Menu, X
+  Github, Terminal, Menu, X, Send, ArrowUpRight,
+  Code2, Smartphone, Server, Database, Layers, Activity,
+  MapPin, Calendar, Cpu, Globe, Zap
 } from 'lucide-react';
 
-const up = {
-  hidden: { opacity: 0, y: 40 },
-  show: (i = 0) => ({
-    opacity: 1, y: 0,
-    transition: { duration: 0.7, delay: i * 0.08, ease: [0.22, 1, 0.36, 1] }
-  })
-};
+/* ═══════════════════════════════════════════════════════
+   UTILITIES
+═══════════════════════════════════════════════════════ */
 
-const container = {
-  show: { transition: { staggerChildren: 0.08 } }
-};
-
-/* ─── Fog / Cloud Layer ─── */
-function FogLayer() {
-  const { scrollYProgress } = useScroll();
-  const leftX = useTransform(scrollYProgress, [0, 1], [-220, -40]);
-  const rightX = useTransform(scrollYProgress, [0, 1], [220, 40]);
-  const fogY = useTransform(scrollYProgress, [0, 1], [120, -40]);
-  const fogOpacity = useTransform(scrollYProgress, [0, 0.5, 1], [0.15, 0.35, 0.25]);
-
-  return (
-    <motion.div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        pointerEvents: 'none',
-        zIndex: 2,
-        opacity: fogOpacity
-      }}
-      aria-hidden="true"
-    >
-      <motion.div
-        style={{
-          position: 'absolute',
-          left: 0,
-          bottom: 0,
-          width: '55vw',
-          height: '40vh',
-          x: leftX,
-          y: fogY,
-          background:
-            'radial-gradient(70% 60% at 30% 70%, rgba(255,255,255,0.9), rgba(255,255,255,0) 70%)',
-          filter: 'blur(18px)'
-        }}
-      />
-      <motion.div
-        style={{
-          position: 'absolute',
-          right: 0,
-          bottom: 0,
-          width: '55vw',
-          height: '40vh',
-          x: rightX,
-          y: fogY,
-          background:
-            'radial-gradient(70% 60% at 70% 70%, rgba(255,255,255,0.9), rgba(255,255,255,0) 70%)',
-          filter: 'blur(18px)'
-        }}
-      />
-    </motion.div>
-  );
-}
-
-/* ─── Animated Network Background ─── */
-function NetworkBg() {
-  const canvasRef = useRef(null);
-
+function useTypewriter(text, speed = 45, delay = 0) {
+  const [displayed, setDisplayed] = useState('');
+  const [done, setDone] = useState(false);
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let width = 0;
-    let height = 0;
-    let raf = 0;
-    const points = [];
-    const POINTS = 60;
-    const MAX_DIST = 170;
-
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
-      width = window.innerWidth;
-      height = window.innerHeight;
-      canvas.width = Math.floor(width * dpr);
-      canvas.height = Math.floor(height * dpr);
-      canvas.style.width = `${width}px`;
-      canvas.style.height = `${height}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-
-    const init = () => {
-      points.length = 0;
-      for (let i = 0; i < POINTS; i += 1) {
-        points.push({
-          x: Math.random() * width,
-          y: Math.random() * height,
-          vx: (Math.random() - 0.5) * 0.6,
-          vy: (Math.random() - 0.5) * 0.6,
-          r: Math.random() * 1.6 + 1.2
-        });
-      }
-    };
-
-    const step = () => {
-      ctx.clearRect(0, 0, width, height);
-
-      // soft gradient wash to match reference feel
-      const grad = ctx.createLinearGradient(0, 0, width, height);
-      grad.addColorStop(0, 'rgba(255,255,255,0.45)');
-      grad.addColorStop(1, 'rgba(239,246,255,0.35)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, width, height);
-
-      for (let i = 0; i < points.length; i += 1) {
-        const p = points[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0 || p.x > width) p.vx *= -1;
-        if (p.y < 0 || p.y > height) p.vy *= -1;
-      }
-
-      // subtle triangle faces
-      for (let i = 0; i < points.length; i += 1) {
-        let n1 = null;
-        let n2 = null;
-        let d1 = Infinity;
-        let d2 = Infinity;
-        const p = points[i];
-        for (let j = 0; j < points.length; j += 1) {
-          if (i === j) continue;
-          const q = points[j];
-          const dx = p.x - q.x;
-          const dy = p.y - q.y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < d1) {
-            d2 = d1; n2 = n1;
-            d1 = d; n1 = q;
-          } else if (d < d2) {
-            d2 = d; n2 = q;
-          }
-        }
-        if (n1 && n2 && d1 < MAX_DIST && d2 < MAX_DIST) {
-          ctx.fillStyle = 'rgba(56,189,248,0.08)';
-          ctx.beginPath();
-          ctx.moveTo(p.x, p.y);
-          ctx.lineTo(n1.x, n1.y);
-          ctx.lineTo(n2.x, n2.y);
-          ctx.closePath();
-          ctx.fill();
-        }
-      }
-
-      for (let i = 0; i < points.length; i += 1) {
-        for (let j = i + 1; j < points.length; j += 1) {
-          const a = points[i];
-          const b = points[j];
-          const dx = a.x - b.x;
-          const dy = a.y - b.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < MAX_DIST) {
-            const alpha = 1 - dist / MAX_DIST;
-            ctx.strokeStyle = `rgba(29,78,216,${alpha * 0.35})`;
-            ctx.lineWidth = 1.1;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.stroke();
-          }
-        }
-      }
-
-      for (let i = 0; i < points.length; i += 1) {
-        const p = points[i];
-        ctx.fillStyle = 'rgba(56,189,248,0.6)';
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      raf = requestAnimationFrame(step);
-    };
-
-    const onResize = () => {
-      resize();
-      init();
-    };
-
-    resize();
-    init();
-    step();
-    window.addEventListener('resize', onResize);
-
-    return () => {
-      cancelAnimationFrame(raf);
-      window.removeEventListener('resize', onResize);
-    };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      aria-hidden="true"
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 0,
-        opacity: 0.75,
-        mixBlendMode: 'multiply',
-        pointerEvents: 'none'
-      }}
-    />
-  );
+    let t;
+    const start = setTimeout(() => {
+      let i = 0;
+      t = setInterval(() => {
+        i++;
+        setDisplayed(text.slice(0, i));
+        if (i >= text.length) { clearInterval(t); setDone(true); }
+      }, speed);
+    }, delay);
+    return () => { clearTimeout(start); clearInterval(t); };
+  }, [text, speed, delay]);
+  return { displayed, done };
 }
 
-/* ─── Glowing Orb Background ─── */
-function Orbs() {
+/* Live uptime since page load */
+function UptimeStat() {
+  const [elapsed, setElapsed] = useState(0);
+  const start = useRef(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setElapsed(Math.floor((Date.now() - start.current) / 1000)), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const h = String(Math.floor(elapsed / 3600)).padStart(2, '0');
+  const m = String(Math.floor((elapsed % 3600) / 60)).padStart(2, '0');
+  const s = String(elapsed % 60).padStart(2, '0');
+  return <span style={{ color: 'var(--primary)', fontWeight: 700, textShadow: 'var(--glow-sm)' }}>{h}:{m}:{s}</span>;
+}
+
+function AsciiDivider({ char = '─', label }) {
+  const fill = char.repeat(20);
   return (
-    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
-      <motion.div
-        animate={{ x: [0, 80, -40, 0], y: [0, -60, 40, 0], scale: [1, 1.2, 0.9, 1] }}
-        transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
-        style={{
-          position: 'absolute', top: '10%', left: '15%',
-          width: 500, height: 500, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(249,115,22,0.18) 0%, transparent 70%)',
-          filter: 'blur(60px)'
-        }}
-      />
-      <motion.div
-        animate={{ x: [0, -60, 50, 0], y: [0, 80, -30, 0], scale: [1, 0.8, 1.15, 1] }}
-        transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
-        style={{
-          position: 'absolute', bottom: '10%', right: '10%',
-          width: 400, height: 400, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(251,146,60,0.18) 0%, transparent 70%)',
-          filter: 'blur(80px)'
-        }}
-      />
-      <motion.div
-        animate={{ x: [0, 40, -60, 0], y: [0, -40, 60, 0] }}
-        transition={{ duration: 30, repeat: Infinity, ease: 'linear' }}
-        style={{
-          position: 'absolute', top: '50%', left: '50%',
-          width: 350, height: 350, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(245,158,11,0.16) 0%, transparent 70%)',
-          filter: 'blur(60px)', transform: 'translate(-50%,-50%)'
-        }}
-      />
+    <div className="ascii-divider">
+      {label
+        ? `${fill}[ ${label} ]${fill}`
+        : char.repeat(60)}
     </div>
   );
 }
 
-/* ─── Grid Background ─── */
-function GridBg() {
+function ProgressBar({ label, pct }) {
+  const filled = Math.round(pct / 5);
+  const empty  = 20 - filled;
   return (
-    <div style={{
-      position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 0,
-      backgroundImage: `
-        linear-gradient(rgba(20,12,6,0.06) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(20,12,6,0.06) 1px, transparent 1px)
-      `,
-      backgroundSize: '80px 80px',
-      maskImage: 'radial-gradient(ellipse at center, black 30%, transparent 80%)',
-      WebkitMaskImage: 'radial-gradient(ellipse at center, black 30%, transparent 80%)'
-    }} />
+    <div className="progress-bar" style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+      <span style={{ minWidth: 180, color: 'var(--t2)' }}>{label}</span>
+      <span style={{ color: 'var(--primary)', textShadow: 'var(--glow-sm)' }}>
+        [{'█'.repeat(filled)}{'░'.repeat(empty)}]
+      </span>
+      <span style={{ color: 'var(--secondary)' }}>{pct}%</span>
+    </div>
   );
 }
 
-/* ─── Navigation ─── */
+function TermWindow({ title, status = 'OK', children, style = {} }) {
+  return (
+    <div className="term-window" style={style}>
+      <div className="term-titlebar">
+        <span>+--- {title} ---+</span>
+        <span className={status === 'OK' ? 'status-ok' : 'status-err'}>[{status}]</span>
+      </div>
+      <div className="term-body">{children}</div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   ASCII LOGO
+═══════════════════════════════════════════════════════ */
+const ASCII_LOGO = `
+ ██████╗ ██╗████████╗███████╗███████╗██╗  ██╗
+ ██╔══██╗██║╚══██╔══╝██╔════╝██╔════╝██║  ██║
+ ██████╔╝██║   ██║   █████╗  ███████╗███████║
+ ██╔══██╗██║   ██║   ██╔══╝  ╚════██║██╔══██║
+ ██║  ██║██║   ██║   ███████╗███████║██║  ██║
+ ╚═╝  ╚═╝╚═╝   ╚═╝   ╚══════╝╚══════╝╚═╝  ╚═╝`;
+
+/* ═══════════════════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════════════════ */
 function Nav() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
@@ -286,743 +104,1343 @@ function Nav() {
   }, []);
 
   const links = [
-    { label: 'About', href: '#about' },
-    { label: 'Skills', href: '#skills' },
-    { label: 'Projects', href: '#projects' },
-    { label: 'Experience', href: '#experience' },
-    { label: 'Contact', href: '#contact' },
+    { label: '--about',      href: '#about' },
+    { label: '--skills',     href: '#skills' },
+    { label: '--projects',   href: '#projects' },
+    { label: '--experience', href: '#experience' },
+    { label: '--contact',    href: '#contact' },
   ];
 
   return (
     <nav style={{
-      position: 'fixed', top: 0, left: 0, right: 0, zIndex: 200,
-      background: scrolled ? 'rgba(255,255,255,0.65)' : 'transparent',
-      backdropFilter: scrolled ? 'blur(18px) saturate(1.2)' : 'none',
-      borderBottom: scrolled ? '1px solid var(--border)' : '1px solid transparent',
-      transition: 'all 0.4s ease'
+      position: 'fixed', top: scrolled ? 10 : 0, left: 0, right: 0, zIndex: 200,
+      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+      fontFamily: 'var(--font)',
+      pointerEvents: 'none'
     }}>
       <div style={{
-        maxWidth: 1200, margin: '0 auto', padding: '0 32px',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        height: 70
+        maxWidth: 1200, margin: '0 auto', padding: '0 24px',
+        pointerEvents: 'auto'
       }}>
-        <a href="#" style={{ fontWeight: 800, fontSize: '1.25rem', letterSpacing: '-0.03em' }}>
-          <span style={{ background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>R</span>itesh
-        </a>
+        <div className="term-window" style={{ 
+          background: scrolled ? 'rgba(10,10,10,0.9)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(12px)' : 'none',
+          boxShadow: scrolled ? '0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px var(--border)' : 'none',
+          border: scrolled ? '1px solid var(--border)' : '1px solid transparent',
+        }}>
+          <div className="term-titlebar" style={{ padding: '4px 12px', background: scrolled ? 'var(--border)' : 'transparent' }}>
+             <a href="#" style={{
+              fontWeight: 800, fontSize: '0.85rem', letterSpacing: '0.12em',
+              color: scrolled ? '#000' : 'var(--primary)', textShadow: scrolled ? 'none' : 'var(--glow)', textDecoration: 'none',
+              display: 'flex', alignItems: 'center', gap: 8
+            }}>
+              <Terminal size={14} />
+              <span>~/ritesh_os<span style={{opacity: 0.5}}>.sys</span></span>
+            </a>
+            <div style={{ display: 'flex', gap: 8 }}>
+               <span style={{ fontSize: '0.7rem', color: scrolled ? '#000' : 'var(--dim)' }}>[ CTRL+K ]</span>
+            </div>
+          </div>
+          
+          <div style={{ 
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            padding: '8px 16px', height: scrolled ? 40 : 60,
+            transition: 'height 0.3s ease'
+          }}>
+            {/* Desktop Links */}
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }} className="nav-desktop">
+              {links.map(l => (
+                <a key={l.href} href={l.href} style={{
+                  fontSize: '0.72rem', color: 'var(--t3)', fontWeight: 600,
+                  letterSpacing: '0.06em', padding: '4px 8px',
+                  transition: 'all 0.15s', textDecoration: 'none', textTransform: 'uppercase'
+                }}
+                  onMouseEnter={e => { e.target.style.color = 'var(--primary)'; e.target.style.textShadow = 'var(--glow-sm)'; }}
+                  onMouseLeave={e => { e.target.style.color = 'var(--t3)'; e.target.style.textShadow = ''; }}
+                >{l.label}</a>
+              ))}
+            </div>
 
-        <div style={{ display: 'flex', gap: 36, alignItems: 'center' }} className="nav-desktop">
-          {links.map(l => (
-            <a key={l.href} href={l.href} style={{
-              fontSize: '0.85rem', color: 'var(--t2)', fontWeight: 500,
-              transition: 'color 0.2s', position: 'relative'
-            }}
-              onMouseEnter={e => e.target.style.color = 'var(--t1)'}
-              onMouseLeave={e => e.target.style.color = 'var(--t2)'}
-            >{l.label}</a>
-          ))}
+            {/* Hamburger */}
+            <button onClick={() => setOpen(!open)} style={{
+              display: 'none', background: 'none', border: '1px solid var(--border)',
+              color: 'var(--primary)', cursor: 'pointer', padding: '4px 8px', fontSize: '0.7rem'
+            }} className="nav-toggle">
+              {open ? 'CLOSE' : 'MENU'}
+            </button>
+          </div>
         </div>
-
-        <button onClick={() => setOpen(!open)} style={{
-          display: 'none', background: 'none', border: 'none', color: 'var(--t1)',
-          cursor: 'pointer', padding: 8
-        }} className="nav-toggle">
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
       </div>
 
-      {open && (
-        <>
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            onClick={() => setOpen(false)}
-            style={{
-              position: 'fixed', inset: 0, background: 'rgba(10,14,25,0.25)',
-              backdropFilter: 'blur(4px)', zIndex: 180
-            }}
-          />
-          <motion.div
-            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 260 }}
-            style={{
-              position: 'fixed', top: 0, right: 0, height: '100vh', width: '78vw',
-              maxWidth: 360, padding: '80px 26px 24px',
-              display: 'flex', flexDirection: 'column', gap: 16,
-              zIndex: 190
-            }}
-            className="glass-strong glass-outline"
-          >
-            {links.map(l => (
-              <a key={l.href} href={l.href} onClick={() => setOpen(false)}
-                style={{ fontSize: '1.05rem', color: 'var(--t2)', fontWeight: 700, padding: '8px 0' }}>
-                {l.label}
-              </a>
-            ))}
-          </motion.div>
-        </>
-      )}
+      {/* Mobile menu */}
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setOpen(false)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', zIndex: 180, backdropFilter: 'blur(4px)' }}
+            />
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              style={{
+                position: 'fixed', top: 0, right: 0, height: '100vh', width: 280,
+                background: 'var(--bg)', borderLeft: '1px solid var(--border)',
+                padding: '80px 24px 24px', display: 'flex', flexDirection: 'column', gap: 8,
+                zIndex: 190
+              }}
+            >
+              <div style={{ color: 'var(--dim)', fontSize: '0.7rem', marginBottom: 12 }}>SYSTEM_MENU v1.0</div>
+              {links.map(l => (
+                <a key={l.href} href={l.href} onClick={() => setOpen(false)}
+                  className="btn-term"
+                  style={{ fontSize: '0.8rem', width: '100%', justifyContent: 'flex-start' }}>
+                  <span style={{ opacity: 0.5 }}>$&gt; </span> {l.label}
+                </a>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <style>{`
-        @media (max-width: 768px) {
+        @media (max-width: 860px) {
           .nav-desktop { display: none !important; }
-          .nav-toggle { display: block !important; }
+          .nav-toggle  { display: block !important; }
         }
       `}</style>
     </nav>
   );
 }
 
-/* ─── Hero ─── */
-function Hero() {
-  const [kick, setKick] = useState({ key: 0, dx: 0, dy: 0 });
-  const sectionRef = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start end', 'end start']
-  });
-  const textY = useTransform(scrollYProgress, [0, 1], [24, -24]);
-  const imageY = useTransform(scrollYProgress, [0, 1], [40, -40]);
-  const glowRotate = useTransform(scrollYProgress, [0, 1], [-6, 6]);
-  const chipsY = useTransform(scrollYProgress, [0, 1], [12, -12]);
-  const backY = useTransform(scrollYProgress, [0, 1], [0, -80]);
-  const frontY = useTransform(scrollYProgress, [0, 1], [0, -20]);
-  const driftX = useTransform(scrollYProgress, [0, 1], [-24, 24]);
-  const driftY = useTransform(scrollYProgress, [0, 1], [18, -18]);
 
-  const skillCards = [
-    { icon: Code2, title: 'React', sub: 'Frontend Expert', style: { top: '6%', right: '-10%' } },
-    { icon: Server, title: 'AWS', sub: 'Cloud Deployment', style: { left: '-12%', top: '46%' } },
-    { icon: Database, title: 'Java', sub: 'Spring Boot', style: { right: '-12%', bottom: '10%' } },
-    { icon: Smartphone, title: 'UI/UX', sub: 'Design Systems', style: { left: '6%', bottom: '-8%' } },
-  ];
-  const floaters = [
-    { label: 'React + Framer', x: '6%', y: '18%', delay: 0.1 },
-    { label: 'Node + APIs', x: '78%', y: '22%', delay: 0.3 },
-    { label: 'Cloud Ready', x: '10%', y: '68%', delay: 0.2 },
-    { label: 'Realtime UX', x: '70%', y: '72%', delay: 0.4 }
-  ];
+/* ═══════════════════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════════════════ */
+function Hero() {
+  const line1 = useTypewriter('RITESH RAM DHEBE', 60, 300);
+  const line2 = useTypewriter('Full Stack Developer', 50, 1400);
+  const line3 = useTypewriter('Building scalable web systems with React, Node.js, Spring Boot & Cloud.', 28, 2600);
 
   return (
-    <section ref={sectionRef} style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center',
-      justifyContent: 'center', padding: '100px 32px 60px', position: 'relative', zIndex: 1,
-      overflow: 'clip'
+    <section id="home" style={{
+      minHeight: '100vh', display: 'flex', flexDirection: 'column',
+      justifyContent: 'center', padding: '120px 24px 80px',
+      position: 'relative', zIndex: 1, overflow: 'clip'
     }}>
-      <motion.div
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 0,
-          pointerEvents: 'none',
-          y: backY
-        }}
-      >
-        <motion.div style={{
-          position: 'absolute',
-          top: '8%',
-          left: '4%',
-          width: 240,
-          height: 240,
-          borderRadius: '40% 60% 65% 35% / 45% 35% 65% 55%',
-          background: 'radial-gradient(circle at 30% 30%, rgba(56,189,248,0.28), rgba(29,78,216,0.08), transparent 70%)',
-          filter: 'blur(4px)',
-          x: driftX
-        }} />
-        <motion.div style={{
-          position: 'absolute',
-          right: '3%',
-          top: '14%',
-          width: 180,
-          height: 180,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(125,211,252,0.24), rgba(29,78,216,0.05), transparent 70%)',
-          filter: 'blur(4px)',
-          y: driftY
-        }} />
-        <motion.div style={{
-          position: 'absolute',
-          left: '15%',
-          bottom: '6%',
-          width: '70%',
-          height: 120,
-          background: 'linear-gradient(90deg, transparent, rgba(29,78,216,0.08), rgba(56,189,248,0.12), rgba(29,78,216,0.08), transparent)',
-          filter: 'blur(22px)',
-          y: frontY
-        }} />
-      </motion.div>
-
-      <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} className="hero-floats">
-        {floaters.map((f, i) => (
-          <motion.div
-            key={f.label}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: f.delay, duration: 0.6 }}
-            style={{
-              position: 'absolute', left: f.x, top: f.y,
-              padding: '8px 14px', borderRadius: 999,
-              background: 'rgba(255,255,255,0.65)', border: '1px solid var(--border)',
-              fontSize: '0.75rem', fontWeight: 600, color: 'var(--t2)',
-              backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', gap: 6
-            }}
-            className="float"
-          >
-            <Sparkles size={12} /> {f.label}
-          </motion.div>
-        ))}
-      </div>
-
-      <motion.div
-        initial="hidden" animate="show" variants={container}
-        style={{
-          maxWidth: 1200, width: '100%',
-          display: 'grid', gridTemplateColumns: '1.1fr 0.9fr',
-          gap: 40, alignItems: 'center',
-          position: 'relative',
-          zIndex: 1
-        }}
-        className="hero-grid"
-      >
-        <motion.div style={{ y: textY }}>
-          <motion.div variants={up} custom={0} style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10,
-            padding: '8px 20px', borderRadius: 100,
-            background: 'rgba(255,255,255,0.7)', border: '1px solid var(--border)',
-            marginBottom: 26
-          }} className="shimmer glass">
-            <motion.div
-              animate={{ scale: [1, 1.3, 1], opacity: [1, 0.7, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--acc)', boxShadow: '0 0 12px var(--acc)' }}
-            />
-            <span style={{ fontSize: '0.8rem', color: 'var(--t2)', fontWeight: 600, letterSpacing: '0.02em' }}>
-              Open to opportunities
-            </span>
-          </motion.div>
-
-          <motion.h1 variants={up} custom={1} style={{
-            fontSize: 'clamp(2.8rem, 6vw, 4.6rem)', fontWeight: 900,
-            letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: 14
-          }}>
-            Ritesh Ram <span className="text-grad">Dhebe</span>
-          </motion.h1>
-
-          <motion.p variants={up} custom={2} style={{
-            fontSize: 'clamp(1.1rem, 2.5vw, 1.4rem)', color: 'var(--t2)',
-            fontWeight: 600, marginBottom: 10
-          }}>
-            Full Stack Developer
-          </motion.p>
-
-          <motion.p variants={up} custom={3} style={{
-            fontSize: '0.98rem', color: 'var(--t3)', maxWidth: 520,
-            marginBottom: 30, lineHeight: 1.7
-          }}>
-            Crafting scalable web experiences with React.js, Node.js & modern cloud infrastructure. Building the future, one commit at a time.
-          </motion.p>
-
-          <motion.div variants={up} custom={4} style={{
-            display: 'flex', gap: 14, flexWrap: 'wrap'
-          }}>
-            <a href="#projects" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '14px 32px', borderRadius: 12, fontWeight: 700,
-              fontSize: '0.9rem', background: 'var(--grad)', color: '#fff',
-              border: 'none', cursor: 'pointer', transition: 'all 0.3s',
-              boxShadow: '0 10px 30px rgba(249,115,22,0.35)'
-            }}
-              onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 16px 40px rgba(249,115,22,0.45)'; }}
-              onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 10px 30px rgba(249,115,22,0.35)'; }}
-            >
-              View Projects <ArrowUpRight size={17} />
-            </a>
-            <a href="#contact" style={{
-              display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '14px 32px', borderRadius: 12, fontWeight: 700,
-              fontSize: '0.9rem', background: 'rgba(255,255,255,0.7)',
-              border: '1px solid var(--border-h)', color: 'var(--t1)',
-              cursor: 'pointer', transition: 'all 0.3s'
-            }}
-              onMouseEnter={e => { e.target.style.borderColor = 'var(--acc)'; e.target.style.background = 'rgba(255,255,255,0.9)'; }}
-              onMouseLeave={e => { e.target.style.borderColor = 'var(--border-h)'; e.target.style.background = 'rgba(255,255,255,0.7)'; }}
-            >
-              Contact Me
-            </a>
-          </motion.div>
+      <div style={{ maxWidth: 1200, margin: '0 auto', width: '100%' }}>
+        
+        {/* System Status Header */}
+        <motion.div 
+          initial={{ opacity: 0, x: -10 }}
+          animate={{ opacity: 1, x: 0 }}
+          style={{ marginBottom: 32, display: 'flex', gap: 16, fontSize: '0.7rem', color: 'var(--dim)' }}
+        >
+          <div style={{ border: '1px solid var(--dim)', padding: '2px 8px' }}>SESSION: ACTIVE</div>
+          <div style={{ border: '1px solid var(--dim)', padding: '2px 8px' }}>OS: RITESH_V3</div>
+          <div style={{ border: '1px solid var(--dim)', padding: '2px 8px' }}>IP: 127.0.0.1</div>
         </motion.div>
 
-        <motion.div
-          variants={up}
-          custom={5}
+        {/* ASCII Logo */}
+        <motion.pre
+          initial={{ opacity: 0, filter: 'blur(10px)' }}
+          animate={{ opacity: 1, filter: 'blur(0px)' }}
+          transition={{ duration: 0.8 }}
           style={{
-            position: 'relative',
-            width: '100%',
-            minHeight: 460,
-            display: 'grid',
-            placeItems: 'center'
+            color: 'var(--primary)', fontSize: 'clamp(4px, 1.1vw, 12px)',
+            lineHeight: 1.2, marginBottom: 48, textShadow: 'var(--glow)',
+            userSelect: 'none', background: 'rgba(51,255,0,0.03)', padding: '20px',
+            borderLeft: '2px solid var(--primary)', overflow: 'auto'
           }}
-          className="hero-image-wrap"
+          className="hero-pre"
         >
-          <motion.div style={{ y: imageY }}>
-            <motion.div style={{ rotate: glowRotate }}>
-              <div style={{
-            position: 'absolute',
-            width: 460, height: 460, borderRadius: '50%',
-            background: 'radial-gradient(circle at 35% 30%, rgba(56,189,248,0.35), rgba(29,78,216,0.15), transparent 60%)',
-            filter: 'blur(12px)'
-              }} />
-            </motion.div>
+          {ASCII_LOGO}
+        </motion.pre>
 
-          <div style={{
-            width: 360, height: 360, borderRadius: '50%',
-            padding: 8,
-            background: 'var(--grad)',
-            boxShadow: '0 30px 80px rgba(29,78,216,0.35)',
-            display: 'grid', placeItems: 'center'
-          }} className="hero-ring">
-            <div style={{
-              width: '100%', height: '100%', borderRadius: '50%',
-              background: '#fff', padding: 6,
-              display: 'grid', placeItems: 'center'
-            }} className="hero-avatar glass-strong glass-outline">
-              <motion.img
-                src="/profile.png"
-                  alt="Ritesh"
-                  initial={{ scale: 0.96, opacity: 0 }}
-                  onClick={(e) => {
-                    const rect = e.currentTarget.getBoundingClientRect();
-                    const clickX = e.clientX - rect.left;
-                    const dir = clickX < rect.width / 2 ? -1 : 1;
-                    setKick({ key: Date.now(), dx: 18 * dir, dy: 16 });
-                  }}
-                  animate={{
-                    scale: 1,
-                    opacity: 1,
-                    x: kick.dx ? [0, kick.dx, 0] : 0,
-                    y: kick.dy ? [0, kick.dy, 0] : 0
-                  }}
-                  transition={{
-                    duration: kick.dx ? 1.2 : 0.8,
-                    ease: 'easeInOut'
-                  }}
-                  key={kick.key}
-                  style={{
-                    width: '100%', height: '100%', objectFit: 'cover',
-                    borderRadius: '50%', display: 'block',
-                    filter: 'saturate(1.15) contrast(1.05) brightness(1.02)'
-                  }}
-                />
-              </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 40 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ color: 'var(--secondary)', fontWeight: 800 }}>&gt; LOGIN:</span>
+            <h1 style={{
+              fontSize: 'clamp(2rem, 6vw, 4.5rem)',
+              color: 'var(--primary)',
+              letterSpacing: '-0.02em',
+              fontWeight: 900,
+              textTransform: 'uppercase',
+              textShadow: 'var(--glow-sm)',
+              fontFamily: 'var(--font)'
+            }}>
+              {line1.displayed}<span className="cursor">_</span>
+            </h1>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <span style={{ color: 'var(--secondary)', fontWeight: 800 }}>&gt; ROLE: </span>
+            <p style={{
+              fontSize: 'clamp(1rem, 2.5vw, 1.6rem)',
+              color: 'var(--secondary)',
+              fontWeight: 500,
+              textTransform: 'uppercase',
+              letterSpacing: '0.1em'
+            }}>
+              {line2.displayed}
+            </p>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginTop: 12 }}>
+             <span style={{ color: 'var(--secondary)', fontWeight: 800 }}>&gt; DESC: </span>
+             <p style={{
+              fontSize: 'clamp(0.85rem, 1.2vw, 1.1rem)',
+              color: 'var(--t3)',
+              maxWidth: '600px',
+              lineHeight: 1.6,
+              letterSpacing: '0.02em'
+            }}>
+              {line3.displayed}
+            </p>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 3.2, duration: 0.5 }}
+          style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 60 }}
+        >
+          <a href="#projects" className="btn-term" id="cta-projects">
+            EXECUTE --projects
+          </a>
+          <a href="#contact" className="btn-term btn-amber" id="cta-contact" style={{ boxShadow: '0 0 20px rgba(255,176,0,0.2)' }}>
+            ./contact.sh --now
+          </a>
+        </motion.div>
+
+        {/* Stats Grid */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 3.6, duration: 0.5 }}
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))',
+            gap: 16, maxWidth: 800
+          }}
+        >
+          {[
+            { key: 'experience', val: '2+ years' },
+            { key: 'projects',   val: '15+ built' },
+            { key: 'tech_stack', val: '12+ tools' },
+            { key: 'session_uptime', val: null },
+          ].map((s, i) => (
+            <div key={i} style={{
+              border: '1px solid var(--border)', padding: '16px',
+              background: 'rgba(51,255,0,0.02)', position: 'relative'
+            }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, width: 4, height: 4, background: 'var(--primary)' }} />
+              <div style={{ color: 'var(--dim)', fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 4 }}>{s.key}:</div>
+              {s.val !== null
+                ? <div style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.9rem' }}>{s.val}</div>
+                : <div style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.9rem' }}><UptimeStat /></div>
+              }
             </div>
-          </motion.div>
-
-          {skillCards.map((c, i) => (
-            <motion.div
-              key={c.title}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + i * 0.08, duration: 0.6 }}
-              style={{
-                position: 'absolute', ...c.style,
-                padding: '14px 16px', borderRadius: 16,
-                background: 'rgba(255,255,255,0.85)',
-                border: '1px solid var(--border)',
-                boxShadow: '0 16px 40px rgba(29,78,216,0.2)',
-                minWidth: 170,
-                y: chipsY
-              }}
-              className="glass skill-float"
-            >
-              <motion.div
-                animate={{ y: [0, i % 2 === 0 ? -8 : 8, 0] }}
-                transition={{ duration: 4 + i, repeat: Infinity, ease: 'easeInOut' }}
-                style={{ display: 'flex', gap: 12, alignItems: 'center' }}
-              >
-                <c.icon size={20} color="var(--acc)" />
-                <div>
-                  <div style={{ fontWeight: 800, fontSize: '0.9rem' }}>{c.title}</div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--t3)', fontWeight: 600 }}>{c.sub}</div>
-                </div>
-              </motion.div>
-            </motion.div>
           ))}
         </motion.div>
-      </motion.div>
+      </div>
 
-      <style>{`
-        @media (max-width: 900px) {
-          .hero-floats { display: none; }
-        }
-        @media (max-width: 860px) {
-          section { padding-top: 110px !important; }
-          .hero-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .hero-image-wrap {
-            min-height: 320px !important;
-          }
-        }
-      `}</style>
+      <AsciiDivider char="─" />
     </section>
   );
 }
 
-/* ─── Section Wrapper ─── */
-function Section({ id, title, sub, children }) {
+/* ═══════════════════════════════════════════════════════
+   SECTION WRAPPER
+═══════════════════════════════════════════════════════ */
+function Section({ id, title, cmd, children }) {
   const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ['start end', 'center center']
-  });
-  const liftY = useTransform(scrollYProgress, [0, 0.5, 1], [70, 0, -70]);
-  const fade = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.75]);
-  const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.97, 1, 0.98]);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
+  const opacity = useTransform(scrollYProgress, [0, 0.25, 0.85, 1], [0, 1, 1, 0.8]);
 
   return (
     <motion.section
-      ref={ref}
-      id={id}
-      style={{
-        padding: '120px 32px',
-        position: 'relative',
-        zIndex: 1,
-        y: liftY,
-        opacity: fade,
-        scale
-      }}
+      ref={ref} id={id}
+      style={{ padding: '100px 24px', position: 'relative', zIndex: 1, opacity }}
     >
-      <motion.div
-        initial="hidden" whileInView="show" viewport={{ once: true, margin: '-80px' }}
-        variants={container}
-        style={{
-          maxWidth: 1200,
-          margin: '0 auto',
-          position: 'relative'
-        }}
-      >
-        <motion.div variants={up} style={{ marginBottom: 56 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <div style={{
-              width: 8, height: 8, borderRadius: '50%',
-              background: 'var(--acc)', boxShadow: '0 0 12px var(--acc)'
-            }} />
-            <span style={{
-              fontSize: '0.78rem', color: 'var(--acc2)', fontWeight: 700,
-              letterSpacing: '0.12em', textTransform: 'uppercase'
-            }}>{sub}</span>
+      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+        {/* Section header */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-80px' }}
+          transition={{ duration: 0.5 }}
+          style={{ marginBottom: 40 }}
+        >
+          <div style={{ color: 'var(--secondary)', fontSize: '0.78rem', marginBottom: 8 }}>
+            root@portfolio:~$ {cmd}
           </div>
           <h2 style={{
-            fontSize: 'clamp(2rem, 4.5vw, 2.8rem)', fontWeight: 900,
-            letterSpacing: '-0.03em', lineHeight: 1.1
-          }}>{title}</h2>
+            fontSize: 'clamp(1.4rem, 3.5vw, 2.2rem)',
+            color: 'var(--primary)', textShadow: 'var(--glow)',
+            letterSpacing: '0.1em', marginBottom: 16
+          }}>
+            {title}
+          </h2>
+          <AsciiDivider label={id.toUpperCase()} />
         </motion.div>
+
         {children}
-      </motion.div>
+      </div>
     </motion.section>
   );
 }
 
-/* ─── Skill Card ─── */
-function SkillCard({ icon: Icon, name, desc, color, idx }) {
+/* ═══════════════════════════════════════════════════════
+   ABOUT
+═══════════════════════════════════════════════════════ */
+function About() {
   return (
-    <motion.div variants={up} custom={idx} whileHover={{ y: -6, borderColor: color + '50' }} style={{
-      padding: 28, borderRadius: 16,
-      background: 'var(--card)', border: '1px solid var(--border)',
-      transition: 'all 0.35s cubic-bezier(0.22,1,0.36,1)', cursor: 'default',
-      position: 'relative', overflow: 'hidden'
-    }} className="card glass">
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-        background: `linear-gradient(90deg, ${color}, transparent)`,
-        opacity: 0, transition: 'opacity 0.3s'
-      }} className="skill-bar" />
-      <div style={{
-        width: 48, height: 48, borderRadius: 14,
-        background: color + '12', display: 'flex',
-        alignItems: 'center', justifyContent: 'center', marginBottom: 18,
-        border: `1px solid ${color}20`
-      }}>
-        <Icon size={22} color={color} />
-      </div>
-      <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: 8, letterSpacing: '-0.01em' }}>{name}</h3>
-      <p style={{ fontSize: '0.87rem', color: 'var(--t3)', lineHeight: 1.65 }}>{desc}</p>
-    </motion.div>
-  );
-}
+    <Section id="about" title="ABOUT.TXT" cmd="cat about.txt">
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+      >
+        <TermWindow title="PROFILE" status="OK" style={{ maxWidth: 760 }}>
+          <div style={{ fontSize: '0.87rem', lineHeight: 2, color: 'var(--t2)' }}>
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ color: 'var(--primary)' }}>NAME</span>
+              <span style={{ color: 'var(--dim)' }}>……… </span>
+              Ritesh Ram Dhebe
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ color: 'var(--primary)' }}>ROLE</span>
+              <span style={{ color: 'var(--dim)' }}>……… </span>
+              Full Stack Developer
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ color: 'var(--primary)' }}>LOCATION</span>
+              <span style={{ color: 'var(--dim)' }}>…… </span>
+              Pune, India
+            </div>
+            <div style={{ marginBottom: 12 }}>
+              <span style={{ color: 'var(--primary)' }}>STATUS</span>
+              <span style={{ color: 'var(--dim)' }}>……… </span>
+              <span className="status-ok">[OPEN TO OPPORTUNITIES]</span>
+            </div>
+          </div>
 
-/* ─── Project Card ─── */
-function ProjectCard({ title, desc, tech, color, idx }) {
-  return (
-    <motion.div variants={up} custom={idx} whileHover={{ y: -6 }} style={{
-      borderRadius: 20, overflow: 'hidden',
-      background: 'var(--card)', border: '1px solid var(--border)',
-      transition: 'all 0.35s cubic-bezier(0.22,1,0.36,1)',
-      position: 'relative'
-    }} className="card glass">
-      <div style={{
-        height: 4, background: `linear-gradient(90deg, ${color}, ${color}40)`
-      }} />
-      <div style={{ padding: 32 }}>
-        <h3 style={{
-          fontSize: '1.25rem', fontWeight: 800, marginBottom: 12,
-          letterSpacing: '-0.02em'
-        }}>{title}</h3>
-        <p style={{
-          fontSize: '0.92rem', color: 'var(--t2)',
-          lineHeight: 1.75, marginBottom: 24
-        }}>{desc}</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-          {tech.map(t => (
-            <span key={t} style={{
-              fontSize: '0.72rem', fontWeight: 600,
-              padding: '5px 14px', borderRadius: 8,
-              background: color + '10', border: `1px solid ${color}25`,
-              color: color, letterSpacing: '0.02em'
-            }}>{t}</span>
-          ))}
-        </div>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ─── Experience Item ─── */
-function ExpItem({ date, title, company, desc, idx }) {
-  return (
-    <motion.div variants={up} custom={idx} style={{
-      display: 'flex', gap: 28, padding: '32px 0',
-      borderBottom: '1px solid var(--border)',
-      position: 'relative'
-    }}>
-      <div style={{
-        minWidth: 150, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 6
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Calendar size={13} color="var(--t3)" />
-          <span style={{ fontSize: '0.8rem', color: 'var(--t3)', fontWeight: 600 }}>{date}</span>
-        </div>
-      </div>
-      <div style={{ flex: 1 }}>
-        <h3 style={{ fontSize: '1.15rem', fontWeight: 800, marginBottom: 6, letterSpacing: '-0.01em' }}>{title}</h3>
-        <p style={{
-          fontSize: '0.88rem', color: 'var(--acc2)', fontWeight: 600,
-          marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6
-        }}>
-          <MapPin size={13} /> {company}
-        </p>
-        <p style={{ fontSize: '0.9rem', color: 'var(--t2)', lineHeight: 1.75 }}>{desc}</p>
-      </div>
-    </motion.div>
-  );
-}
-
-/* ─── Contact ─── */
-function Contact() {
-  return (
-    <Section id="contact" title="Let's Connect" sub="Get in Touch">
-      <motion.div variants={up} style={{
-        background: 'var(--card)', border: '1px solid var(--border)',
-        borderRadius: 24, padding: '52px 48px', maxWidth: 650,
-        position: 'relative', overflow: 'hidden'
-      }} className="card glass">
-        <div style={{
-          position: 'absolute', top: -50, right: -50,
-          width: 200, height: 200, borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(108,92,231,0.08), transparent)',
-          filter: 'blur(40px)'
-        }} />
-        <p style={{
-          fontSize: '1.05rem', color: 'var(--t2)', lineHeight: 1.75, marginBottom: 36,
-          position: 'relative'
-        }}>
-          Interested in working together? Whether you have a project in mind or just want to chat, feel free to reach out.
-        </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, position: 'relative' }}>
-          <a href="https://wa.me/919552115645?text=Hi%20Ritesh,%20I%20have%20an%20inquiry%20regarding%20a%20project." target="_blank" rel="noreferrer" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            padding: '16px 28px', borderRadius: 14,
-            background: 'var(--grad2)', color: '#000', fontWeight: 700,
-            fontSize: '0.95rem', transition: 'all 0.3s', border: 'none',
-            boxShadow: '0 4px 20px rgba(0,230,118,0.25)'
-          }}
-            onMouseEnter={e => { e.target.style.transform = 'translateY(-2px)'; e.target.style.boxShadow = '0 8px 30px rgba(0,230,118,0.4)'; }}
-            onMouseLeave={e => { e.target.style.transform = 'translateY(0)'; e.target.style.boxShadow = '0 4px 20px rgba(0,230,118,0.25)'; }}
-          >
-            <Send size={17} /> WhatsApp Inquiry
-          </a>
-          <a href="https://github.com/Ritesh123-rd" target="_blank" rel="noreferrer" style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            padding: '16px 28px', borderRadius: 14,
-            background: 'rgba(255,255,255,0.04)', color: 'var(--t1)',
-            fontWeight: 700, fontSize: '0.95rem',
-            border: '1px solid var(--border-h)', transition: 'all 0.3s'
-          }}
-            onMouseEnter={e => { e.target.style.borderColor = 'var(--acc)'; e.target.style.background = 'rgba(108,92,231,0.08)'; }}
-            onMouseLeave={e => { e.target.style.borderColor = 'var(--border-h)'; e.target.style.background = 'rgba(255,255,255,0.04)'; }}
-          >
-            <Github size={17} /> GitHub Profile
-          </a>
-        </div>
+          <div style={{ borderTop: '1px dashed var(--dim)', paddingTop: 20, marginTop: 8 }}>
+            <div style={{ color: 'var(--secondary)', fontSize: '0.78rem', marginBottom: 10 }}>$ cat bio.md</div>
+            <p style={{ fontSize: '0.88rem', color: 'var(--t2)', lineHeight: 1.9 }}>
+              Full Stack Developer with <span style={{ color: 'var(--primary)' }}>2+ years</span> of experience
+              building scalable web architectures using <span style={{ color: 'var(--primary)' }}>React.js</span>,{' '}
+              <span style={{ color: 'var(--primary)' }}>Node.js</span>, and{' '}
+              <span style={{ color: 'var(--primary)' }}>Java Spring Boot</span>. Passionate about clean code,
+              performance optimization, and seamless user experiences. Currently focused on enterprise software
+              development and real-time systems at <span style={{ color: 'var(--secondary)' }}>Crystal Web, Pune</span>.
+            </p>
+          </div>
+        </TermWindow>
       </motion.div>
     </Section>
   );
 }
 
-/* ─── Stats ─── */
-function Stats() {
-  const items = [
-    { num: '2+', label: 'Years Experience' },
-    { num: '15+', label: 'Projects Completed' },
-    { num: '10+', label: 'Technologies' },
-    { num: '100%', label: 'Client Satisfaction' },
+/* ═══════════════════════════════════════════════════════
+   SKILLS
+═══════════════════════════════════════════════════════ */
+function Skills() {
+  const techBars = [
+    { label: 'React.js / Next.js',      pct: 90 },
+    { label: 'Java / Spring Boot',       pct: 80 },
+    { label: 'Node.js / Express.js',    pct: 85 },
+    { label: 'MongoDB / PostgreSQL',     pct: 82 },
+    { label: 'Docker / AWS',            pct: 75 },
+    { label: 'WebSockets / Redis',      pct: 78 },
+    { label: 'TypeScript',              pct: 80 },
+    { label: 'Linux / Shell / DevOps',  pct: 72 },
   ];
+
+  const skillCards = [
+    { icon: Smartphone, name: 'FRONTEND DEV',    desc: 'React.js, Next.js, TypeScript, responsive UI, modern CSS', color: '#33ff00' },
+    { icon: Server,     name: 'BACKEND DEV',     desc: 'Node.js, Express.js, Java Spring Boot, REST APIs, GraphQL', color: '#ffb000' },
+    { icon: Database,   name: 'DATABASE',        desc: 'MongoDB, MySQL, Redis, PostgreSQL — modeling & tuning',    color: '#33ff00' },
+    { icon: Terminal,   name: 'DEVOPS & CLOUD',  desc: 'Docker, AWS, CI/CD pipelines, Linux server management',   color: '#ffb000' },
+    { icon: Layers,     name: 'ARCHITECTURE',    desc: 'Spring MVC, event-driven systems, microservices, API design', color: '#33ff00' },
+    { icon: Activity,   name: 'REAL-TIME',       desc: 'WebSockets, high concurrency, gaming platforms, streams', color: '#ffb000' },
+  ];
+
   return (
-    <section style={{ padding: '60px 32px', position: 'relative', zIndex: 1 }}>
+    <Section id="skills" title="SKILLS.SH --list-all" cmd="./skills.sh --verbose">
+
+      {/* Progress bars */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        style={{ marginBottom: 36 }}
+      >
+        <TermWindow title="PROFICIENCY_MATRIX" status="OK">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {techBars.map((b, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -16 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.07, duration: 0.4 }}
+              >
+                <ProgressBar label={b.label} pct={b.pct} />
+              </motion.div>
+            ))}
+          </div>
+        </TermWindow>
+      </motion.div>
+
+      {/* Skill cards */}
       <div style={{
-        maxWidth: 1200, margin: '0 auto',
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 24
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+        gap: 16
       }}>
-        {items.map((it, i) => (
+        {skillCards.map((s, i) => (
           <motion.div
-            key={i} initial={{ opacity: 0, y: 20 }}
+            key={i}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ delay: i * 0.1, duration: 0.5 }}
+            transition={{ delay: i * 0.08, duration: 0.4 }}
+            whileHover={{ borderColor: s.color }}
             style={{
-              textAlign: 'center', padding: 28,
-              background: 'var(--card)', borderRadius: 16,
-              border: '1px solid var(--border)'
+              border: '1px solid var(--border)', padding: '20px 22px',
+              background: 'var(--bg)', position: 'relative', overflow: 'hidden',
+              cursor: 'default', transition: 'border-color 0.2s'
             }}
-            className="card glass"
           >
             <div style={{
-              fontSize: '2.2rem', fontWeight: 900, letterSpacing: '-0.03em',
-              background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-              marginBottom: 4
-            }}>{it.num}</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--t3)', fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              {it.label}
+              position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+              background: s.color, opacity: 0.5
+            }} />
+            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
+              <s.icon size={18} style={{ color: s.color, flexShrink: 0, marginTop: 2, filter: `drop-shadow(0 0 4px ${s.color})` }} />
+              <div>
+                <div style={{
+                  fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.1em',
+                  color: s.color, textShadow: `0 0 6px ${s.color}80`, marginBottom: 6
+                }}>{s.name}</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--t3)', lineHeight: 1.65 }}>{s.desc}</div>
+              </div>
             </div>
           </motion.div>
         ))}
       </div>
-    </section>
+    </Section>
   );
 }
 
-/* ─── Footer ─── */
-function Footer() {
-  return (
-    <footer style={{
-      padding: '48px 32px', textAlign: 'center',
-      borderTop: '1px solid var(--border)', position: 'relative', zIndex: 1
-    }}>
-      <div style={{
-        fontWeight: 800, fontSize: '1.1rem', marginBottom: 12,
-        background: 'var(--grad)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-      }}>Ritesh Ram Dhebe</div>
-      <p style={{ fontSize: '0.82rem', color: 'var(--t3)' }}>
-        &copy; 2026 All rights reserved. Built with React & Framer Motion.
-      </p>
-    </footer>
-  );
-}
-
-/* ─── Main App ─── */
-export default function App() {
-  const skills = [
-    { icon: Smartphone, name: 'Frontend Development', desc: 'React.js, Next.js, TypeScript, responsive UI with modern CSS frameworks', color: '#6c5ce7' },
-    { icon: Server, name: 'Backend Development', desc: 'Node.js, Express.js, REST APIs, GraphQL, microservices architecture', color: '#00e676' },
-    { icon: Database, name: 'Database Management', desc: 'MongoDB, MySQL, Redis, PostgreSQL, data modeling and optimization', color: '#f39c12' },
-    { icon: Terminal, name: 'DevOps & Cloud', desc: 'Docker, AWS, CI/CD pipelines, Linux server management', color: '#e74c3c' },
-    { icon: Layers, name: 'System Architecture', desc: 'Scalable design patterns, event-driven systems, API design', color: '#a29bfe' },
-    { icon: Activity, name: 'Real-Time Systems', desc: 'WebSockets, high concurrency, gaming platforms, event streaming', color: '#00cec9' },
-  ];
-
+/* ═══════════════════════════════════════════════════════
+   PROJECTS
+═══════════════════════════════════════════════════════ */
+function Projects() {
   const projects = [
     {
+      id: 'proj_01',
       title: 'Dynamic Web & Mobile Apps',
-      desc: 'Responsive client websites and scalable mobile applications with modern frameworks, performance optimization, and seamless user experiences across all devices.',
+      desc: 'Responsive client websites and scalable mobile applications with modern frameworks, performance optimization, and seamless UX across all devices.',
       tech: ['React.js', 'Node.js', 'Express.js', 'REST APIs'],
-      color: '#6c5ce7'
+      status: 'DEPLOYED',
+      color: '#33ff00'
     },
     {
+      id: 'proj_02',
       title: 'Enterprise Software Solutions',
-      desc: 'Core business workflows for CRM and LMS platforms featuring role-based access control, real-time analytics dashboards, and comprehensive admin panels.',
+      desc: 'Core business workflows for CRM and LMS platforms with role-based access control, real-time analytics dashboards, and comprehensive admin panels.',
       tech: ['MongoDB', 'Node.js', 'React', 'Docker'],
-      color: '#00e676'
+      status: 'DEPLOYED',
+      color: '#ffb000'
     },
     {
+      id: 'proj_03',
       title: 'Multiplayer Gaming Platforms',
       desc: 'Real-time probability and skill-based gaming architectures with high concurrency, low-latency communication, and robust security measures.',
       tech: ['WebSockets', 'Node.js', 'Linux', 'Redis'],
-      color: '#fd79a8'
+      status: 'RUNNING',
+      color: '#33ff00'
     },
   ];
 
-  const experiences = [
+  return (
+    <Section id="projects" title="PROJECTS --show-all" cmd="ls -la ./projects/">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
+        {projects.map((p, i) => (
+          <motion.div
+            key={p.id}
+            initial={{ opacity: 0, y: 24 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.1, duration: 0.5 }}
+            whileHover={{ borderColor: p.color }}
+            style={{
+              border: '1px solid var(--border)',
+              background: 'var(--bg)',
+              transition: 'border-color 0.2s',
+              overflow: 'hidden'
+            }}
+          >
+            {/* Title bar */}
+            <div style={{
+              background: p.color, padding: '8px 16px',
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+            }}>
+              <span style={{ color: '#000', fontWeight: 800, fontSize: '0.8rem', letterSpacing: '0.1em' }}>
+                {p.id}.exe
+              </span>
+              <span style={{ color: '#000', fontSize: '0.72rem', fontWeight: 700 }}>
+                [{p.status}]
+              </span>
+            </div>
+
+            <div style={{ padding: '22px 20px' }}>
+              <div style={{ color: 'var(--secondary)', fontSize: '0.72rem', marginBottom: 6 }}>
+                $ cat {p.id}/README.md
+              </div>
+              <h3 style={{
+                fontSize: '0.95rem', fontWeight: 800, letterSpacing: '0.06em',
+                textTransform: 'uppercase', color: 'var(--primary)',
+                textShadow: 'var(--glow-sm)', marginBottom: 12
+              }}>{p.title}</h3>
+              <p style={{ fontSize: '0.83rem', color: 'var(--t3)', lineHeight: 1.75, marginBottom: 18 }}>
+                {p.desc}
+              </p>
+
+              {/* Tech tags */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {p.tech.map(t => (
+                  <span key={t} className="tag">{t}</span>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   EXPERIENCE
+═══════════════════════════════════════════════════════ */
+function Experience() {
+  const items = [
     {
       date: 'Apr 2024 — Present',
       title: 'Full Stack Developer',
       company: 'Crystal Web, Pune',
-      desc: 'Building scalable web applications and enterprise solutions using React.js and Node.js. Leading architecture decisions for real-time systems and cloud infrastructure. Implementing CI/CD pipelines and DevOps best practices.'
+      desc: 'Building scalable web applications and enterprise solutions using React.js, Node.js, and Java Spring Boot. Leading architecture decisions for real-time systems, REST API design, and cloud infrastructure. Implementing CI/CD pipelines and DevOps best practices.',
+      status: 'ACTIVE'
     },
     {
       date: '2018 — 2022',
       title: 'BSc Computer Science',
       company: 'TJ College Khadki, Pune University',
-      desc: 'Studied computer science fundamentals including data structures, algorithms, databases, operating systems, and software engineering principles. Completed capstone projects in web development.'
+      desc: 'Computer science fundamentals — data structures, algorithms, databases, operating systems, and software engineering. Completed capstone projects in web development.',
+      status: 'COMPLETED'
     },
   ];
 
   return (
-    <div style={{ background: 'var(--bg)', minHeight: '100vh' }}>
-      <NetworkBg />
-      <FogLayer />
-      <Nav />
-      <Hero />
-      <Stats />
+    <Section id="experience" title="EXPERIENCE.LOG" cmd="cat experience.log | grep -v empty">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {items.map((it, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: i * 0.12, duration: 0.5 }}
+          >
+            <TermWindow
+              title={`RECORD_${String(i + 1).padStart(2, '0')}`}
+              status={it.status === 'ACTIVE' ? 'OK' : 'DONE'}
+            >
+              <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+                <div style={{ minWidth: 160, flexShrink: 0 }}>
+                  <div style={{ color: 'var(--dim)', fontSize: '0.72rem', marginBottom: 4 }}>TIMESTAMP</div>
+                  <div style={{ color: 'var(--secondary)', fontSize: '0.82rem', fontWeight: 600 }}>{it.date}</div>
+                </div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ color: 'var(--primary)', fontSize: '0.95rem', fontWeight: 800, marginBottom: 4, textShadow: 'var(--glow-sm)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    {it.title}
+                  </div>
+                  <div style={{ color: 'var(--secondary)', fontSize: '0.8rem', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <MapPin size={12} /> {it.company}
+                  </div>
+                  <p style={{ fontSize: '0.84rem', color: 'var(--t3)', lineHeight: 1.8 }}>{it.desc}</p>
+                </div>
+              </div>
+            </TermWindow>
+          </motion.div>
+        ))}
+      </div>
+    </Section>
+  );
+}
 
-      <Section id="about" title="About Me" sub="Introduction">
-        <motion.div variants={up} style={{
-          background: 'var(--card)', border: '1px solid var(--border)',
-          borderRadius: 24, padding: '40px 44px', maxWidth: 750,
-          position: 'relative', overflow: 'hidden'
-        }}>
-          <div style={{
-            position: 'absolute', top: -30, right: -30,
-            width: 150, height: 150, borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(108,92,231,0.06), transparent)',
-            filter: 'blur(30px)'
-          }} />
-          <p style={{ fontSize: '1.05rem', color: 'var(--t2)', lineHeight: 1.85, position: 'relative' }}>
-            Full Stack Developer with <strong style={{ color: 'var(--t1)' }}>2+ years</strong> of experience building scalable web architectures using <strong style={{ color: 'var(--acc2)' }}>React.js</strong> and <strong style={{ color: 'var(--acc2)' }}>Node.js</strong>. Passionate about clean code, performance optimization, and creating seamless user experiences. Currently focused on enterprise software development and real-time systems at Crystal Web, Pune.
-          </p>
-        </motion.div>
-      </Section>
+/* ═══════════════════════════════════════════════════════
+   CONTACT
+═══════════════════════════════════════════════════════ */
+function Contact() {
+  return (
+    <Section id="contact" title="CONTACT.SH" cmd="./contact.sh --init-session">
+      <motion.div
+        initial={{ opacity: 0, y: 24 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5 }}
+        style={{ maxWidth: 640 }}
+      >
+        <TermWindow title="COMM_CHANNEL" status="OK">
+          <div style={{ color: 'var(--t3)', fontSize: '0.87rem', lineHeight: 1.9, marginBottom: 28 }}>
+            <div style={{ color: 'var(--secondary)', marginBottom: 8 }}>$ ping ritesh --message</div>
+            <p>
+              Interested in working together? Whether you have a project in mind or just want to chat,
+              feel free to reach out via the channels below.
+            </p>
+          </div>
 
-      <Section id="skills" title="Technical Skills" sub="Expertise">
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 18
-        }}>
-          {skills.map((s, i) => <SkillCard key={i} {...s} idx={i} />)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <a
+              href="https://wa.me/919552115645?text=Hi%20Ritesh,%20I%20have%20an%20inquiry%20regarding%20a%20project."
+              target="_blank" rel="noreferrer"
+              className="btn-term btn-amber"
+              id="contact-whatsapp"
+              style={{ justifyContent: 'center' }}
+            >
+              <Send size={15} /> WhatsApp Inquiry
+            </a>
+
+            <a
+              href="https://github.com/Ritesh123-rd"
+              target="_blank" rel="noreferrer"
+              className="btn-term"
+              id="contact-github"
+              style={{ justifyContent: 'center' }}
+            >
+              <Github size={15} /> GitHub Profile
+            </a>
+          </div>
+
+          <div style={{ marginTop: 24, borderTop: '1px dashed var(--dim)', paddingTop: 16, fontSize: '0.75rem', color: 'var(--dim)' }}>
+            <div>ping response: &lt;50ms (usually same-day)</div>
+            <div>timezone: IST (UTC+5:30)</div>
+          </div>
+        </TermWindow>
+      </motion.div>
+    </Section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════════════ */
+function Footer() {
+  return (
+    <footer style={{
+      padding: '32px 24px',
+      borderTop: '1px solid var(--border)',
+      position: 'relative', zIndex: 1,
+      fontFamily: 'var(--font)'
+    }}>
+      <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ color: 'var(--primary)', fontWeight: 700, fontSize: '0.85rem', textShadow: 'var(--glow-sm)' }}>
+          <span style={{ color: 'var(--secondary)' }}>~/</span>ritesh-portfolio
         </div>
-      </Section>
-
-      <Section id="projects" title="Featured Projects" sub="Selected Work">
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 22
-        }}>
-          {projects.map((p, i) => <ProjectCard key={i} {...p} idx={i} />)}
+        <div style={{ fontSize: '0.75rem', color: 'var(--dim)' }}>
+          © 2026 Ritesh Ram Dhebe — Built with React &amp; Framer Motion
         </div>
-      </Section>
+        <div style={{ fontSize: '0.72rem', color: 'var(--dim)' }}>
+          <span className="status-ok">[OK]</span> All systems nominal
+        </div>
+      </div>
+    </footer>
+  );
+}
 
-      <Section id="experience" title="Experience & Education" sub="My Journey">
-        {experiences.map((e, i) => <ExpItem key={i} {...e} idx={i} />)}
-      </Section>
+/* ═══════════════════════════════════════════════════════
+   MATRIX RAIN — subtle bg canvas
+═══════════════════════════════════════════════════════ */
+function MatrixBg() {
+  const canvasRef = useRef(null);
 
-      <Contact />
-      <Footer />
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const chars = '01ABCDEF</>{}[]$#@!%^&*;:';
+    let w, h, cols, drops;
+    const fontSize = 13;
+
+    const resize = () => {
+      w = canvas.width  = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+      cols  = Math.floor(w / fontSize);
+      drops = Array(cols).fill(1);
+    };
+
+    const draw = () => {
+      ctx.fillStyle = 'rgba(10,10,10,0.055)';
+      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = '#0a2a0a';
+      ctx.font = `${fontSize}px JetBrains Mono, monospace`;
+
+      for (let i = 0; i < drops.length; i++) {
+        const c = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(c, i * fontSize, drops[i] * fontSize);
+        if (drops[i] * fontSize > h && Math.random() > 0.975) drops[i] = 0;
+        drops[i]++;
+      }
+    };
+
+    resize();
+    const raf = setInterval(draw, 60);
+    window.addEventListener('resize', resize);
+    return () => { clearInterval(raf); window.removeEventListener('resize', resize); };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      style={{
+        position: 'fixed', inset: 0, zIndex: 0,
+        opacity: 0.35, pointerEvents: 'none'
+      }}
+    />
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   BOOT LOADER
+═══════════════════════════════════════════════════════ */
+const BOOT_SEQ = [
+  { t: 0,    text: 'RITESH PORTFOLIO OS v3.1.4 — BOOTING...',             color: 'var(--secondary)' },
+  { t: 280,  text: 'Initializing hardware interfaces...',                  color: 'var(--dim)' },
+  { t: 560,  text: '[OK]  CPU: Intel Core i9 — 3.6GHz × 16',             color: 'var(--primary)' },
+  { t: 780,  text: '[OK]  RAM: 64GB DDR5 ECC',                            color: 'var(--primary)' },
+  { t: 960,  text: '[OK]  GPU: NVIDIA RTX 4090 — CUDA ready',             color: 'var(--primary)' },
+  { t: 1120, text: '[OK]  Disk: NVMe 2TB — mounted at /',                 color: 'var(--primary)' },
+  { t: 1300, text: 'Loading modules...',                                   color: 'var(--dim)' },
+  { t: 1480, text: '[OK]  react@18.3 — UI renderer loaded',               color: 'var(--primary)' },
+  { t: 1650, text: '[OK]  framer-motion@11 — animation engine ready',     color: 'var(--primary)' },
+  { t: 1820, text: '[OK]  node.js@22 — runtime environment ready',        color: 'var(--primary)' },
+  { t: 2000, text: '[OK]  vite@5 — build system initialized',             color: 'var(--primary)' },
+  { t: 2180, text: '[  ]  Checking network connection...',                color: 'var(--dim)' },
+  { t: 2400, text: '[OK]  Network: CONNECTED — 1Gbps fiber',              color: 'var(--primary)' },
+  { t: 2600, text: 'Mounting portfolio filesystem...',                    color: 'var(--dim)' },
+  { t: 2780, text: '[OK]  /about    → loaded',                           color: 'var(--primary)' },
+  { t: 2900, text: '[OK]  /skills   → loaded',                           color: 'var(--primary)' },
+  { t: 3020, text: '[OK]  /projects → loaded',                           color: 'var(--primary)' },
+  { t: 3140, text: '[OK]  /contact  → loaded',                           color: 'var(--primary)' },
+  { t: 3300, text: '════ ALL SYSTEMS NOMINAL — WELCOME, OPERATOR ════',  color: 'var(--secondary)' },
+];
+
+function BootLoader({ onDone }) {
+  const [lines, setLines] = useState([]);
+  const [progress, setProgress] = useState(0);
+  const [exiting, setExiting] = useState(false);
+  const ran = useRef(false);
+
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+    const timers = BOOT_SEQ.map((item, i) =>
+      setTimeout(() => {
+        setLines(prev => [...prev, item]);
+        setProgress(Math.round(((i + 1) / BOOT_SEQ.length) * 100));
+        if (i === BOOT_SEQ.length - 1) {
+          setTimeout(() => { setExiting(true); setTimeout(onDone, 700); }, 700);
+        }
+      }, item.t)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+
+  const filled = Math.round(progress / 5);
+  const empty  = 20 - filled;
+
+  return (
+    <motion.div
+      initial={{ opacity: 1 }}
+      animate={{ opacity: exiting ? 0 : 1 }}
+      transition={{ duration: 0.6 }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9997,
+        background: '#000', display: 'flex', flexDirection: 'column',
+        justifyContent: 'center', alignItems: 'flex-start',
+        padding: 'clamp(20px, 5vw, 80px)', fontFamily: 'var(--font)',
+        overflow: 'hidden'
+      }}
+    >
+      {/* Big ASCII brand */}
+      <pre style={{
+        color: 'var(--muted)', fontSize: 'clamp(4px, 0.9vw, 10px)',
+        lineHeight: 1.2, marginBottom: 32, textShadow: 'none', userSelect: 'none'
+      }}>{`
+ ██████╗  ██████╗ ██████╗ ████████╗    ██████╗ ███████╗
+ ██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝    ██╔═══██╗██╔════╝
+ ██████╔╝██║   ██║██████╔╝   ██║       ██║   ██║███████╗
+ ██╔═══╝ ██║   ██║██╔══██╗   ██║       ██║   ██║╚════██║
+ ██║     ╚██████╔╝██║  ██║   ██║       ╚██████╔╝███████║
+ ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝        ╚═════╝ ╚══════╝`}
+      </pre>
+
+      {/* Boot log */}
+      <div style={{ width: '100%', maxWidth: 720, marginBottom: 28 }}>
+        {lines.map((l, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.2 }}
+            style={{ fontSize: 'clamp(11px, 1.1vw, 13px)', lineHeight: 1.9, color: l.color }}
+          >
+            {l.text}
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ fontSize: 13, color: 'var(--primary)', marginBottom: 8 }}>
+        LOADING [{'█'.repeat(filled)}{'░'.repeat(empty)}] {progress}%
+      </div>
+      <div style={{ fontSize: 11, color: 'var(--dim)' }}>press any key to skip...</div>
+
+      {/* Scanlines over boot screen */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.22) 2px, rgba(0,0,0,0.22) 4px)'
+      }} />
+    </motion.div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   INTERACTIVE TERMINAL
+═══════════════════════════════════════════════════════ */
+const COMMANDS = {
+  'java': [
+    { text: 'Java / Spring Boot — Backend Expertise', color: 'var(--secondary)' },
+    { text: '  Spring MVC     → RESTful web services & MVC architecture', color: 'var(--t2)' },
+    { text: '  Spring Boot    → Rapid microservice & API development',     color: 'var(--t2)' },
+    { text: '  Spring Data JPA→ ORM with Hibernate, MySQL, PostgreSQL',    color: 'var(--t2)' },
+    { text: '  Spring Security→ JWT auth, OAuth2, role-based access',       color: 'var(--t2)' },
+    { text: '  Maven / Gradle → Build & dependency management',             color: 'var(--t2)' },
+    { text: '  Proficiency: [████████████████░░░░] 80%',                   color: 'var(--primary)' },
+  ],
+  help: [
+    { text: 'Available commands:', color: 'var(--secondary)' },
+    { text: '  about       → Who is Ritesh?',         color: 'var(--t2)' },
+    { text: '  skills      → Technical skill matrix', color: 'var(--t2)' },
+    { text: '  java        → Java/Spring Boot stack', color: 'var(--t2)' },
+    { text: '  projects    → List all projects',      color: 'var(--t2)' },
+    { text: '  contact     → Get in touch',           color: 'var(--t2)' },
+    { text: '  experience  → Work history',           color: 'var(--t2)' },
+    { text: '  whoami      → Quick identity check',   color: 'var(--t2)' },
+    { text: '  clear       → Clear terminal',         color: 'var(--t2)' },
+    { text: '  hire me     → Best decision ever 🚀',  color: 'var(--t2)' },
+  ],
+  about: [
+    { text: 'Name    : Ritesh Ram Dhebe',                    color: 'var(--primary)' },
+    { text: 'Role    : Full Stack Developer',                color: 'var(--primary)' },
+    { text: 'Company : Crystal Web, Pune',                  color: 'var(--primary)' },
+    { text: 'Exp     : 2+ years',                           color: 'var(--primary)' },
+    { text: 'Stack   : React · Node.js · Spring Boot · Docker', color: 'var(--primary)' },
+    { text: 'Status  : [OPEN TO OPPORTUNITIES]',            color: 'var(--secondary)' },
+  ],
+  whoami: [
+    { text: 'uid=1000(ritesh) gid=1000(devs)',           color: 'var(--primary)' },
+    { text: 'groups=devs,sudo,cloud,fullstack,crafts',   color: 'var(--t2)' },
+  ],
+  skills: [
+    { text: 'React.js / Next.js  [████████████████████] 90%', color: 'var(--primary)' },
+    { text: 'Java / Spring Boot  [████████████████░░░░] 80%', color: 'var(--primary)' },
+    { text: 'Node.js / Express   [█████████████████░░░] 85%', color: 'var(--primary)' },
+    { text: 'MongoDB / PostgreSQL [████████████████░░░░] 82%', color: 'var(--primary)' },
+    { text: 'Docker / AWS        [███████████████░░░░░] 75%', color: 'var(--primary)' },
+    { text: 'WebSockets / Redis  [███████████████░░░░░] 78%', color: 'var(--primary)' },
+    { text: 'TypeScript          [████████████████░░░░] 80%', color: 'var(--primary)' },
+  ],
+  projects: [
+    { text: '[1] Dynamic Web & Mobile Apps    → React, Node, APIs',     color: 'var(--primary)' },
+    { text: '[2] Enterprise Software Solutions → MongoDB, Spring Boot',  color: 'var(--primary)' },
+    { text: '[3] Multiplayer Gaming Platforms  → WebSockets, Redis',     color: 'var(--primary)' },
+    { text: 'Scroll to #projects for full details ↓',                    color: 'var(--secondary)' },
+  ],
+  experience: [
+    { text: '2024–Now  Full Stack Developer @ Crystal Web, Pune', color: 'var(--primary)' },
+    { text: '2018–2022 BSc Computer Science @ TJ College Khadki', color: 'var(--t2)' },
+  ],
+  contact: [
+    { text: 'WhatsApp : wa.me/919552115645',      color: 'var(--primary)' },
+    { text: 'GitHub   : github.com/Ritesh123-rd', color: 'var(--primary)' },
+    { text: 'TZ       : IST (UTC+5:30)',           color: 'var(--t2)' },
+    { text: 'Response : < 24 hours',               color: 'var(--t2)' },
+  ],
+  'hire me': [
+    { text: '✔ Initiating hire sequence...',              color: 'var(--secondary)' },
+    { text: '✔ Checking candidate profile...',            color: 'var(--primary)' },
+    { text: '✔ QUALIFICATION VERIFIED',                  color: 'var(--primary)' },
+    { text: '✔ Sending offer letter...',                  color: 'var(--secondary)' },
+    { text: 'ERROR: You need to contact Ritesh first! 😄', color: 'var(--error)' },
+    { text: 'Run: contact',                              color: 'var(--t3)' },
+  ],
+};
+
+
+function InteractiveTerminal() {
+  const [history, setHistory] = useState([
+    { type: 'system', lines: [{ text: 'Portfolio Terminal v3.1.4 — Type `help` for commands.', color: 'var(--secondary)' }] }
+  ]);
+  const [input, setInput] = useState('');
+  const [cmdHistory, setCmdHistory] = useState([]);
+  const [histIdx, setHistIdx] = useState(-1);
+  const bottomRef = useRef(null);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [history]);
+
+  const runCmd = (raw) => {
+    const cmd = raw.trim().toLowerCase();
+    if (!cmd) return;
+    setCmdHistory(prev => [cmd, ...prev]);
+    setHistIdx(-1);
+
+    if (cmd === 'clear') {
+      setHistory([]);
+      return;
+    }
+
+    const output = COMMANDS[cmd] || [{ text: `bash: ${cmd}: command not found. Try \`help\`.`, color: 'var(--error)' }];
+    setHistory(prev => [
+      ...prev,
+      { type: 'cmd',    cmd },
+      { type: 'output', lines: output }
+    ]);
+  };
+
+  const handleKey = (e) => {
+    if (e.key === 'Enter') { runCmd(input); setInput(''); }
+    else if (e.key === 'ArrowUp') {
+      const next = Math.min(histIdx + 1, cmdHistory.length - 1);
+      setHistIdx(next);
+      setInput(cmdHistory[next] || '');
+      e.preventDefault();
+    } else if (e.key === 'ArrowDown') {
+      const next = Math.max(histIdx - 1, -1);
+      setHistIdx(next);
+      setInput(next === -1 ? '' : cmdHistory[next]);
+      e.preventDefault();
+    }
+  };
+
+  return (
+    <div
+      className="term-window"
+      onClick={() => inputRef.current?.focus()}
+      style={{ maxWidth: 760, cursor: 'text' }}
+    >
+      <div className="term-titlebar">
+        <span>+--- INTERACTIVE TERMINAL ---+</span>
+        <span className="status-ok">[LIVE]</span>
+      </div>
+      <div style={{
+        padding: '16px 20px',
+        minHeight: 260, maxHeight: 380, overflowY: 'auto',
+        fontFamily: 'var(--font)', fontSize: 13
+      }}>
+        {history.map((entry, i) => (
+          <div key={i} style={{ marginBottom: 4 }}>
+            {entry.type === 'cmd' && (
+              <div style={{ color: 'var(--secondary)' }}>
+                <span style={{ color: 'var(--dim)' }}>ritesh@portfolio:~$ </span>{entry.cmd}
+              </div>
+            )}
+            {entry.type !== 'cmd' && entry.lines?.map((l, j) => (
+              <div key={j} style={{ color: l.color, lineHeight: 1.85 }}>{l.text}</div>
+            ))}
+          </div>
+        ))}
+
+        {/* Input line */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+          <span style={{ color: 'var(--dim)', whiteSpace: 'nowrap' }}>ritesh@portfolio:~$ </span>
+          <input
+            ref={inputRef}
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={handleKey}
+            autoComplete="off"
+            spellCheck={false}
+            style={{
+              background: 'transparent', border: 'none', outline: 'none',
+              color: 'var(--primary)', fontFamily: 'var(--font)',
+              fontSize: 13, flex: 1, caretColor: 'var(--primary)',
+              textShadow: 'var(--glow-sm)'
+            }}
+          />
+        </div>
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Hint bar */}
+      <div style={{
+        borderTop: '1px dashed var(--dim)', padding: '6px 20px',
+        fontSize: 11, color: 'var(--dim)', display: 'flex', gap: 20
+      }}>
+        <span>↑↓ history</span>
+        <span>ENTER execute</span>
+        <span>type `help` to start</span>
+      </div>
     </div>
   );
 }
+
+/* ═══════════════════════════════════════════════════════
+   STATUS BAR  (tmux-style, fixed bottom)
+═══════════════════════════════════════════════════════ */
+function StatusBar() {
+  const [time, setTime] = useState(new Date());
+  const [scroll, setScroll] = useState(0);
+  const [section, setSection] = useState('HOME');
+
+  useEffect(() => {
+    const t = setInterval(() => setTime(new Date()), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => {
+      const pct = Math.round((window.scrollY / (document.body.scrollHeight - window.innerHeight)) * 100);
+      setScroll(isNaN(pct) ? 0 : pct);
+      const sections = ['contact', 'experience', 'projects', 'skills', 'about', 'home'];
+      for (const id of sections) {
+        const el = document.getElementById(id);
+        if (el && window.scrollY >= el.offsetTop - 200) {
+          setSection(id.toUpperCase());
+          break;
+        }
+      }
+    };
+    window.addEventListener('scroll', onScroll);
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  const timeStr = time.toLocaleTimeString('en-IN', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'Asia/Kolkata'
+  });
+  const dateStr = time.toLocaleDateString('en-IN', {
+    day: '2-digit', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata'
+  });
+
+  return (
+    <div style={{
+      position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 300,
+      background: 'var(--primary)', height: 26,
+      display: 'flex', alignItems: 'center',
+      fontFamily: 'var(--font)', fontSize: 12, fontWeight: 700,
+      letterSpacing: '0.06em', userSelect: 'none'
+    }}>
+      {/* Left — mode */}
+      <div style={{
+        background: '#000', color: 'var(--primary)',
+        padding: '0 14px', height: '100%',
+        display: 'flex', alignItems: 'center', gap: 8,
+        textShadow: 'var(--glow-sm)', flexShrink: 0
+      }}>
+        <Terminal size={12} /> NORMAL
+      </div>
+
+      {/* Git branch style */}
+      <div style={{
+        background: 'var(--muted)', color: 'var(--primary)',
+        padding: '0 14px', height: '100%',
+        display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0
+      }}>
+        ⎇ main
+      </div>
+
+      {/* Section */}
+      <div style={{
+        background: 'rgba(0,0,0,0.3)', color: '#000',
+        padding: '0 14px', height: '100%',
+        display: 'flex', alignItems: 'center', flexShrink: 0
+      }}>
+        §&nbsp;{section}
+      </div>
+
+      {/* Spacer */}
+      <div style={{ flex: 1, height: '100%', background: 'var(--primary)' }} />
+
+      {/* Scroll % */}
+      <div style={{
+        background: 'rgba(0,0,0,0.2)', color: '#000',
+        padding: '0 12px', height: '100%',
+        display: 'flex', alignItems: 'center', flexShrink: 0
+      }}>
+        {scroll}%
+      </div>
+
+      {/* File */}
+      <div style={{
+        background: 'rgba(0,0,0,0.15)', color: '#000',
+        padding: '0 12px', height: '100%',
+        display: 'flex', alignItems: 'center', flexShrink: 0
+      }}>
+        ritesh-portfolio/App.jsx
+      </div>
+
+      {/* Date */}
+      <div style={{
+        background: 'var(--muted)', color: 'var(--primary)',
+        padding: '0 12px', height: '100%',
+        display: 'flex', alignItems: 'center', flexShrink: 0,
+        textShadow: 'none'
+      }}>
+        {dateStr}
+      </div>
+
+      {/* Clock */}
+      <div style={{
+        background: '#000', color: 'var(--primary)',
+        padding: '0 14px', height: '100%',
+        display: 'flex', alignItems: 'center',
+        textShadow: 'var(--glow-sm)', flexShrink: 0
+      }}>
+        {timeStr} IST
+      </div>
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   COMMAND PALETTE (CTRL+K)
+═══════════════════════════════════════════════════════ */
+function CommandPalette() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const inputRef = useRef(null);
+
+  const options = [
+    { label: 'Jump to Home',        action: () => (window.location.hash = '#home') },
+    { label: 'Jump to About',       action: () => (window.location.hash = '#about') },
+    { label: 'Jump to Skills',      action: () => (window.location.hash = '#skills') },
+    { label: 'Jump to Projects',    action: () => (window.location.hash = '#projects') },
+    { label: 'Jump to Experience',  action: () => (window.location.hash = '#experience') },
+    { label: 'Jump to Contact',     action: () => (window.location.hash = '#contact') },
+    { label: 'Open Terminal',       action: () => { window.location.hash = '#contact'; setTimeout(() => document.querySelector('input')?.focus(), 200); } },
+    { label: 'Check Java Skills',   action: () => (window.location.hash = '#skills') },
+  ];
+
+  const filtered = options.filter(o => o.label.toLowerCase().includes(query.toLowerCase()));
+
+  useEffect(() => {
+    const fn = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setOpen(prev => !prev);
+      }
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, []);
+
+  useEffect(() => { if (open) { setQuery(''); setTimeout(() => inputRef.current?.focus(), 10); } }, [open]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '15vh', padding: '0 24px' }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)' }} />
+          <motion.div initial={{ opacity: 0, y: -20, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -20, scale: 0.98 }} style={{ width: '100%', maxWidth: 640, background: 'var(--bg)', border: '1px solid var(--primary)', position: 'relative', zIndex: 501, boxShadow: '0 0 50px rgba(51,255,0,0.15)' }}>
+            <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+              <Terminal size={18} style={{ color: 'var(--primary)' }} />
+              <input ref={inputRef} placeholder="Search commands or sections..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && filtered[0]) { filtered[0].action(); setOpen(false); } }} style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--primary)', fontFamily: 'var(--font)', fontSize: '1.1rem', flex: 1, caretColor: 'var(--primary)' }} />
+              <span style={{ color: 'var(--dim)', fontSize: '0.7rem', border: '1px solid var(--dim)', padding: '2px 6px' }}>ESC</span>
+            </div>
+            <div style={{ maxHeight: 300, overflowY: 'auto', padding: '8px 0' }}>
+              {filtered.map((o, i) => (
+                <button key={i} onClick={() => { o.action(); setOpen(false); }} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'transparent', border: 'none', color: 'var(--t3)', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font)', transition: 'all 0.1s' }} onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary)'; e.currentTarget.style.color = '#000'; }} onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--t3)'; }}>
+                  <Zap size={14} />
+                  <span>{o.label}</span>
+                </button>
+              ))}
+              {filtered.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--dim)', fontSize: '0.9rem' }}>No results found for "{query}"</div>}
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   KONAMI EGG 🎮
+═══════════════════════════════════════════════════════ */
+function KonamiEgg() {
+  const [active, setActive] = useState(false);
+  const seq = useRef([]);
+  const konami = 'ArrowUpArrowUpArrowDownArrowDownArrowLeftArrowRightArrowLeftArrowRightba';
+
+  useEffect(() => {
+    const fn = (e) => {
+      seq.current.push(e.key);
+      if (seq.current.length > 10) seq.current.shift();
+      if (seq.current.join('').includes(konami)) { setActive(true); setTimeout(() => setActive(false), 5000); seq.current = []; }
+    };
+    window.addEventListener('keydown', fn);
+    return () => window.removeEventListener('keydown', fn);
+  }, []);
+
+  return (
+    <AnimatePresence>
+      {active && (
+        <motion.div initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 2 }} style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(51,255,0,0.1)', backdropFilter: 'hue-rotate(90deg)' }}>
+          <div style={{ padding: '40px', background: '#000', border: '4px solid var(--primary)', textAlign: 'center', boxShadow: '0 0 100px var(--primary)' }}>
+            <h1 style={{ color: 'var(--primary)', fontSize: '4rem', marginBottom: 20 }}>CHEATS ENABLED</h1>
+            <p style={{ color: 'var(--secondary)', fontSize: '1.2rem' }}>WELCOME TO THE MATRIX, OPERATOR.</p>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════
+   APP ROOT
+═══════════════════════════════════════════════════════ */
+export default function App() {
+  const [booted, setBooted] = useState(false);
+
+  // Skip boot on keypress / click
+  useEffect(() => {
+    if (booted) return;
+    const skip = () => setBooted(true);
+    window.addEventListener('keydown', skip, { once: true });
+    window.addEventListener('click',   skip, { once: true });
+    return () => { window.removeEventListener('keydown', skip); window.removeEventListener('click', skip); };
+  }, [booted]);
+
+  return (
+    <div style={{ background: 'var(--bg)', minHeight: '100vh', position: 'relative', paddingBottom: 26, cursor: 'crosshair' }}>
+      <AnimatePresence>
+        {!booted && <BootLoader key="boot" onDone={() => setBooted(true)} />}
+      </AnimatePresence>
+
+      <MatrixBg />
+      <Nav />
+      <CommandPalette />
+      <KonamiEgg />
+      
+      <Hero />
+      <About />
+      <Skills />
+      <Projects />
+      <Experience />
+
+      {/* Contact section now has Interactive Terminal */}
+      <motion.section
+        id="contact"
+        style={{ padding: '100px 24px', position: 'relative', zIndex: 1 }}
+      >
+        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            style={{ marginBottom: 40 }}
+          >
+            <div style={{ color: 'var(--secondary)', fontSize: '0.78rem', marginBottom: 8 }}>
+              root@portfolio:~$ ./contact.sh --init-session
+            </div>
+            <h2 style={{
+              fontSize: 'clamp(1.4rem, 3.5vw, 2.2rem)',
+              color: 'var(--primary)', textShadow: 'var(--glow)',
+              letterSpacing: '0.1em', marginBottom: 16, fontFamily: 'var(--font)', textTransform: 'uppercase'
+            }}>
+              CONTACT.SH
+            </h2>
+            <AsciiDivider label="CONTACT" />
+          </motion.div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 24 }}>
+            {/* Left – quick links */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5 }}
+            >
+              <div className="term-window" style={{ height: '100%' }}>
+                <div className="term-titlebar">
+                  <span>+--- COMM_CHANNEL ---+</span>
+                  <span className="status-ok">[OK]</span>
+                </div>
+                <div className="term-body">
+                  <div style={{ color: 'var(--t3)', fontSize: '0.87rem', lineHeight: 1.9, marginBottom: 28 }}>
+                    <div style={{ color: 'var(--secondary)', marginBottom: 8 }}>$ ping ritesh --message</div>
+                    <p>Interested in working together? Reach out via any channel below.</p>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <a
+                      href="https://wa.me/919552115645?text=Hi%20Ritesh,%20I%20have%20an%20inquiry%20regarding%20a%20project."
+                      target="_blank" rel="noreferrer"
+                      className="btn-term btn-amber"
+                      id="contact-whatsapp"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <Send size={15} /> WhatsApp Inquiry
+                    </a>
+                    <a
+                      href="https://github.com/Ritesh123-rd"
+                      target="_blank" rel="noreferrer"
+                      className="btn-term"
+                      id="contact-github"
+                      style={{ justifyContent: 'center' }}
+                    >
+                      <Github size={15} /> GitHub Profile
+                    </a>
+                  </div>
+                  <div style={{ marginTop: 24, borderTop: '1px dashed var(--dim)', paddingTop: 16, fontSize: '0.75rem', color: 'var(--dim)' }}>
+                    <div>ping response: &lt;50ms (usually same-day)</div>
+                    <div>timezone: IST (UTC+5:30)</div>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Right – interactive terminal */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+            >
+              <InteractiveTerminal />
+            </motion.div>
+          </div>
+        </div>
+      </motion.section>
+
+      <Footer />
+      <StatusBar />
+    </div>
+  );
+}
+
